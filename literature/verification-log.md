@@ -44,3 +44,19 @@ Independent verification pass over all 32 entries in `references.bib`, split acr
 - 32/32 entries in `references.bib` are verified against a directly-fetched source (primary publisher/arXiv/ACL page, or an independent Semantic Scholar API / web-search cross-check where the primary source was paywalled or blocked).
 - 1 fabricated detail was caught and fixed: `dmello2012autotutor`'s subtitle. This is exactly the failure mode the verification pass exists to catch — a plausible-sounding but wrong title text attached to a real, correctly-attributed paper.
 - No entries were dropped; final bibliography remains 32 papers.
+
+## Third-pass spot-check
+
+A third, independent pass beyond the two-agent verification above, run directly by the controller (not delegated) after the final whole-branch review.
+
+**First 5 entries checked** — koedinger2005cognitive, macina2023mathdial, piech2015deep, kestin2025aitutoring, wood1976role. **Deviation from plan:** the plan specified a *random* sample; 2 of these 5 (koedinger2005cognitive, wood1976role) were deliberately chosen instead because they carried discrepancy notes from the two-agent pass above, to confirm those resolutions held up under independent re-checking. This is good practice but is a weaker sample for the other 30 (unflagged) entries than a true random draw. All 5/5 PASS — no new discrepancies found; both flagged resolutions (koedinger's 2005 print date, wood's author list) reconfirmed.
+
+**3 additional, genuinely randomly-selected entries checked** to address the sampling gap above — kulik2016effectiveness, alhossami2023socratic, zheng2023judging. All 3/3 PASS: titles, authors, and years fetched directly matched the `.bib` entries exactly (SAGE journal page for kulik2016effectiveness, ACL Anthology for alhossami2023socratic, arXiv abstract page for zheng2023judging).
+
+**Combined third-pass result: 8/8 PASS** (5 targeted + 3 random), no discrepancies found beyond what the two-agent pass had already caught and resolved.
+
+## corbett1995knowledge — year/issue nuance (found during final-review fix pass)
+
+The final whole-branch review flagged that `corbett1995knowledge`'s year (1995) and the newly-added `number` (issue) field needed confirmation from an authoritative source, since Semantic Scholar had separately returned a spurious "2005" for this DOI (see main table above) and the paper's own Springer landing page (https://link.springer.com/article/10.1007/BF01099821) displays "Published: December 1994" — a third, different date.
+
+Resolved via the CrossRef API (`https://api.crossref.org/works/10.1007/BF01099821`), which is the authoritative registry for this DOI's metadata: `"issue": "4"`, `"published-print": {"date-parts": [[1995]]}`, `"volume": "4"`, `"page": "253-278"`. CrossRef's officially registered print-publication year is **1995** (matching the existing `.bib` entry and citation key), and issue **4** (matching the field added during the fix pass). The Springer landing page's "December 1994" most likely reflects an early/accepted date rather than the registered print-issue date — the same online-first-vs-print-year pattern already documented for `rivers2017datadriven` above. Kept as-is: year 1995, issue 4, both now confirmed against the authoritative DOI registry rather than a secondary source.
