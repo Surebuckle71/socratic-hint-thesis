@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+.venv*/
+venv/
+
+# ML training artifacts (large, machine-specific, regeneratable)
+unsloth_compiled_cache/
+checkpoints/
+*.safetensors
+*.bin
+
+# Data caches
+data/raw/
+data/processed/
