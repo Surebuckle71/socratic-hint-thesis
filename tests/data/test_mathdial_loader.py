@@ -31,6 +31,17 @@ def test_parse_conversation_ignores_empty_segments():
     assert len(turns) == 2
 
 
+def test_parse_conversation_handles_name_labeled_student_turn():
+    raw = (
+        "Teacher: (probing)Steven, If you had 4 of something and tripled that "
+        "amount, how much would you have?|EOM|"
+        "Steven: I would have 12 of something.|EOM|"
+    )
+    turns = parse_conversation(raw)
+    assert turns[1].speaker == "student"
+    assert turns[1].text == "I would have 12 of something."
+
+
 FAKE_ROWS = [
     {
         "qid": 5000012,
