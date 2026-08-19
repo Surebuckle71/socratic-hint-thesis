@@ -6,7 +6,7 @@ from anthropic import Anthropic
 
 from socratic_hint.llm_config import (
     DEFAULT_MODEL,
-    MIN_MAX_TOKENS,
+    GENERATION_MAX_TOKENS,
     default_thinking_kwargs,
     extract_text,
 )
@@ -40,7 +40,7 @@ class PedagogicalQualityJudge:
         )
         response = self.client.messages.create(
             model=self.model,
-            max_tokens=MIN_MAX_TOKENS,
+            max_tokens=GENERATION_MAX_TOKENS,
             messages=[{"role": "user", "content": prompt}],
             **default_thinking_kwargs(),
         )

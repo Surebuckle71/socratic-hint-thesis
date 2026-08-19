@@ -33,6 +33,15 @@ DEFAULT_MODEL = "claude-sonnet-5"
 # alone and returning no text block.
 MIN_MAX_TOKENS = 1024
 
+# Higher ceiling for call sites that must emit a non-trivial visible answer
+# (a state line + hint, or a full JSON object) rather than a single word —
+# at MIN_MAX_TOKENS, a longer-than-usual thinking pass can truncate the
+# visible answer before parsing, turning a normal example into a silent
+# per-example failure in evaluate_condition's error handling rather than a
+# clear signal. Pure short-answer classification (e.g. YES/NO) can stay at
+# MIN_MAX_TOKENS.
+GENERATION_MAX_TOKENS = 4096
+
 
 def default_thinking_kwargs() -> dict:
     """Request kwargs enabling adaptive thinking at low effort.

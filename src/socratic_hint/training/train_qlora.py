@@ -97,6 +97,11 @@ def train(
     training_args = SFTConfig(
         output_dir=str(config.output_dir),
         per_device_train_batch_size=config.per_device_train_batch_size,
+        # Eval defaults to 8 in TrainingArguments if unset — match the train
+        # batch size instead, since it was deliberately kept tiny for the
+        # 6GB VRAM budget and an unconstrained eval pass would OOM at the
+        # first eval checkpoint.
+        per_device_eval_batch_size=config.per_device_train_batch_size,
         gradient_accumulation_steps=config.gradient_accumulation_steps,
         max_steps=config.max_steps,
         learning_rate=config.learning_rate,

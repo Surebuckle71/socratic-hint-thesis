@@ -24,7 +24,7 @@ student convergence, and a state-adaptivity diagnostic.
 | `src/socratic_hint/evaluation/` | Judge, simulated student, state-adaptivity diagnostic, orchestrator |
 | `src/socratic_hint/llm_config.py` | Shared model id and request shape for every real API call |
 | `scripts/` | Runnable end-to-end training and evaluation scripts |
-| `tests/` | Unit tests (fast, mocked) plus two `-m gpu` smoke tests |
+| `tests/` | Unit tests (fast, mocked) plus one `-m gpu` smoke test |
 
 ## Environments
 
