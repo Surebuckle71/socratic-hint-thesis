@@ -4,9 +4,15 @@ from dataclasses import dataclass
 from anthropic import Anthropic
 
 from socratic_hint.backends.base import HintBackend
+from socratic_hint.llm_config import (
+    DEFAULT_MODEL,
+    MIN_MAX_TOKENS,
+    default_thinking_kwargs,
+    extract_text,
+)
 from socratic_hint.types import DialogueTurn
 
-DEFAULT_MODEL = "claude-sonnet-5"
+__all__ = ["DEFAULT_MODEL", "SimulationResult", "SimulatedStudentEvaluator"]
 
 
 @dataclass(frozen=True)
@@ -36,10 +42,11 @@ class SimulatedStudentEvaluator:
         )
         response = self.student_client.messages.create(
             model=self.student_model,
-            max_tokens=128,
+            max_tokens=MIN_MAX_TOKENS,
             messages=[{"role": "user", "content": prompt}],
+            **default_thinking_kwargs(),
         )
-        return response.content[0].text.strip()
+        return extract_text(response).strip()
 
     def _is_correct(self, problem: str, ground_truth: str, student_reply: str) -> bool:
         prompt = (
@@ -48,15 +55,37 @@ class SimulatedStudentEvaluator:
         )
         response = self.student_client.messages.create(
             model=self.student_model,
-            max_tokens=8,
+            max_tokens=MIN_MAX_TOKENS,
             messages=[{"role": "user", "content": prompt}],
+            **default_thinking_kwargs(),
         )
-        return response.content[0].text.strip().upper().startswith("YES")
+        return extract_text(response).strip().upper().startswith("YES")
 
-    def run(self, backend: HintBackend, problem: str, ground_truth: str) -> SimulationResult:
-        transcript: list[DialogueTurn] = []
+    def run(
+        self,
+        backend: HintBackend,
+        problem: str,
+        ground_truth: str,
+        suppress_state: bool = False,
+        initial_history: list[DialogueTurn] | None = None,
+    ) -> SimulationResult:
+        """Run a simulated tutoring dialogue until the student converges.
+
+        `suppress_state` is forwarded to the backend on every tutor turn, so
+        the ablation condition (fine-tuned model with state-conditioning
+        suppressed) is simulated with the same weights but without state.
+
+        `initial_history` seeds the transcript with real recorded dialogue
+        (e.g. the opening turns of a MathDial conversation) so the first
+        generated hint has genuine conversational grounding. It defaults to an
+        empty history, preserving the original cold-start behaviour. The
+        returned transcript includes the seed turns at the front.
+        """
+        transcript: list[DialogueTurn] = list(initial_history or [])
         for turn_number in range(1, self.max_turns + 1):
-            hint_result = backend.infer_and_hint(transcript, problem)
+            hint_result = backend.infer_and_hint(
+                transcript, problem, suppress_state=suppress_state
+            )
             transcript.append(DialogueTurn(speaker="tutor", text=hint_result.hint))
             student_reply = self._simulate_student_reply(problem, transcript)
             transcript.append(DialogueTurn(speaker="student", text=student_reply))

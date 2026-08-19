@@ -1,11 +1,14 @@
 from socratic_hint.types import DialogueTurn, HintResult, StateEstimate
 
-SUBSKILLS = [
+# Immutable on purpose: this is shared module-level state read by the prompt
+# formatter, the state-label deriver, and the tests. A tuple prevents a
+# consumer from mutating the canonical subskill list in place.
+SUBSKILLS: tuple[str, ...] = (
     "problem_comprehension",
     "arithmetic_execution",
     "step_sequencing",
     "self_correction",
-]
+)
 
 
 def format_prompt(
