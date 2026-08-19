@@ -26,7 +26,9 @@ class PedagogicalQualityJudge:
             f"Problem: {problem}\nDialogue so far: {dialogue_context}\nHint given: {hint}\n\n"
             "Respond ONLY with JSON in exactly this shape: "
             '{"scaffolding_vs_telling": <1-5>, "correctness": <1-5>, '
-            '"appropriateness": <1-5>, "rationale": "<one sentence>"}'
+            '"appropriateness": <1-5>, "rationale": "<one sentence>"}\n\n'
+            "Output must start directly with `{` and end with `}` — no markdown code fences, "
+            "no ```json``` blocks, no explanatory text before or after the JSON."
         )
         response = self.client.messages.create(
             model=self.model,
