@@ -6,14 +6,26 @@ import pytest
 from socratic_hint.evaluation.judge import JUDGE_DIMENSIONS, PedagogicalQualityJudge
 
 
+class FakeThinkingBlock:
+    """Mirrors a real ThinkingBlock: has `.thinking`, NOT `.text`."""
+
+    def __init__(self, thinking: str = "reasoning..."):
+        self.type = "thinking"
+        self.thinking = thinking
+
+
 class FakeTextBlock:
     def __init__(self, text: str):
+        self.type = "text"
         self.text = text
 
 
 class FakeResponse:
+    """Adaptive thinking is on by default for claude-sonnet-5, so a real
+    response leads with a ThinkingBlock — content[0] is not the answer."""
+
     def __init__(self, text: str):
-        self.content = [FakeTextBlock(text)]
+        self.content = [FakeThinkingBlock(), FakeTextBlock(text)]
 
 
 def make_fake_client(payload: dict) -> MagicMock:
@@ -37,6 +49,13 @@ def test_score_parses_all_dimensions():
     for dim in JUDGE_DIMENSIONS:
         assert score.scores[dim] == payload[dim]
     assert score.rationale == "Good scaffolding hint."
+
+    call_kwargs = client.messages.create.call_args.kwargs
+    assert call_kwargs["thinking"] == {"type": "adaptive"}
+    assert call_kwargs["output_config"] == {"effort": "low"}
+    # Thinking tokens count against max_tokens; 256 would risk emitting no
+    # text block at all.
+    assert call_kwargs["max_tokens"] >= 1024
 
 
 def test_score_raises_on_malformed_json():

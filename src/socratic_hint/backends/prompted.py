@@ -3,10 +3,16 @@ import os
 from anthropic import Anthropic
 
 from socratic_hint.backends.base import HintBackend
+from socratic_hint.llm_config import (
+    DEFAULT_MODEL,
+    MIN_MAX_TOKENS,
+    default_thinking_kwargs,
+    extract_text,
+)
 from socratic_hint.output_format import format_prompt, parse_model_output
 from socratic_hint.types import DialogueTurn, HintResult
 
-DEFAULT_MODEL = "claude-sonnet-5"
+__all__ = ["DEFAULT_MODEL", "PromptedBackend"]
 
 
 class PromptedBackend(HintBackend):
@@ -23,8 +29,9 @@ class PromptedBackend(HintBackend):
         prompt = format_prompt(dialogue_history, problem, suppress_state=suppress_state)
         response = self.client.messages.create(
             model=self.model,
-            max_tokens=512,
+            max_tokens=MIN_MAX_TOKENS,
             messages=[{"role": "user", "content": prompt}],
+            **default_thinking_kwargs(),
         )
-        raw_text = response.content[0].text
+        raw_text = extract_text(response)
         return parse_model_output(raw_text, suppress_state=suppress_state)

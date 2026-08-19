@@ -4,8 +4,16 @@ from dataclasses import dataclass
 
 from anthropic import Anthropic
 
+from socratic_hint.llm_config import (
+    DEFAULT_MODEL,
+    MIN_MAX_TOKENS,
+    default_thinking_kwargs,
+    extract_text,
+)
+
 JUDGE_DIMENSIONS = ["scaffolding_vs_telling", "correctness", "appropriateness"]
-DEFAULT_MODEL = "claude-sonnet-5"
+
+__all__ = ["DEFAULT_MODEL", "JUDGE_DIMENSIONS", "JudgeScore", "PedagogicalQualityJudge"]
 
 
 @dataclass(frozen=True)
@@ -32,10 +40,11 @@ class PedagogicalQualityJudge:
         )
         response = self.client.messages.create(
             model=self.model,
-            max_tokens=256,
+            max_tokens=MIN_MAX_TOKENS,
             messages=[{"role": "user", "content": prompt}],
+            **default_thinking_kwargs(),
         )
-        raw = response.content[0].text
+        raw = extract_text(response)
         parsed = json.loads(raw)
         scores = {dim: int(parsed[dim]) for dim in JUDGE_DIMENSIONS}
         return JudgeScore(scores=scores, rationale=parsed["rationale"])

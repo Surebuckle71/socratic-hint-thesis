@@ -4,14 +4,26 @@ from socratic_hint.backends.prompted import PromptedBackend
 from socratic_hint.types import DialogueTurn
 
 
+class FakeThinkingBlock:
+    """Mirrors a real ThinkingBlock: has `.thinking`, NOT `.text`."""
+
+    def __init__(self, thinking: str = "reasoning..."):
+        self.type = "thinking"
+        self.thinking = thinking
+
+
 class FakeTextBlock:
     def __init__(self, text: str):
+        self.type = "text"
         self.text = text
 
 
 class FakeResponse:
+    """Adaptive thinking is on by default for claude-sonnet-5, so a real
+    response leads with a ThinkingBlock — content[0] is not the answer."""
+
     def __init__(self, text: str):
-        self.content = [FakeTextBlock(text)]
+        self.content = [FakeThinkingBlock(), FakeTextBlock(text)]
 
 
 def make_fake_client(response_text: str) -> MagicMock:
@@ -31,6 +43,10 @@ def test_infer_and_hint_parses_state_and_hint_from_response():
     call_kwargs = client.messages.create.call_args.kwargs
     assert call_kwargs["model"] == "claude-sonnet-5"
     assert "Solve 2+2." in call_kwargs["messages"][0]["content"]
+    # Thinking is requested explicitly, and max_tokens leaves room for it.
+    assert call_kwargs["thinking"] == {"type": "adaptive"}
+    assert call_kwargs["output_config"] == {"effort": "low"}
+    assert call_kwargs["max_tokens"] >= 1024
 
 
 def test_infer_and_hint_suppress_state_passes_through():
