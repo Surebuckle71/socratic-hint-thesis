@@ -2,8 +2,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from socratic_hint.backends.finetuned import FinetunedBackend
-from socratic_hint.types import DialogueTurn
+# socratic_hint.backends.finetuned imports unsloth at module level, and unsloth
+# is only installed in the training environment (.venv313). Skip the whole
+# module on a base install so `pytest` does not fail at COLLECTION time.
+pytest.importorskip("unsloth")
+
+from socratic_hint.backends.finetuned import FinetunedBackend  # noqa: E402
+from socratic_hint.types import DialogueTurn  # noqa: E402
 
 
 def test_infer_and_hint_parses_generated_text(tmp_path):
@@ -67,13 +72,3 @@ def test_infer_and_hint_suppress_state_passes_through(tmp_path):
     # prompt sent to the tokenizer reflects suppress_state=True
     prompt_arg = fake_tokenizer.call_args.args[0]
     assert "State:" not in prompt_arg
-
-
-@pytest.mark.gpu
-def test_infer_and_hint_against_real_smoke_checkpoint(tmp_path):
-    """Requires Task 6's smoke test to have been run first, producing a
-    checkpoint at the given path. Run manually with a real checkpoint dir:
-    pytest tests/backends/test_finetuned.py -v -m gpu --checkpoint-dir=<path>
-    This test intentionally has no fixture wiring here — see the task's
-    manual-run note below."""
-    pytest.skip("Run manually against a real checkpoint; see docstring.")

@@ -20,3 +20,6 @@ train = [
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 markers = ["gpu: requires a local GPU and trained checkpoint"]
+# A bare `pytest` runs the fast suite only. Explicit `-m gpu` on the command
+# line overrides this, so GPU tests remain runnable on demand.
+addopts = "-m 'not gpu'"

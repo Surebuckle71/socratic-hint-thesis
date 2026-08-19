@@ -1,7 +1,12 @@
 import pytest
 
-from socratic_hint.data.training_examples import TrainingExample
-from socratic_hint.training.train_qlora import TrainConfig, train
+# socratic_hint.training.train_qlora imports unsloth at module level, and
+# unsloth is only installed in the training environment (.venv313). Skip the
+# whole module on a base install so `pytest` does not fail at COLLECTION time.
+pytest.importorskip("unsloth")
+
+from socratic_hint.data.training_examples import TrainingExample  # noqa: E402
+from socratic_hint.training.train_qlora import TrainConfig, train  # noqa: E402
 
 
 @pytest.mark.gpu
