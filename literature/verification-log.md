@@ -18,7 +18,7 @@ Independent verification pass over all 32 entries in `references.bib`, split acr
 | sonkar2023class | PASS | https://arxiv.org/abs/2305.13272 | Title, 4-author list, year match. |
 | liu2024socraticlm | PASS | NeurIPS 2024 proceedings page | Title, 8-author list, venue, year match. |
 | stevens1977goal | PASS | Semantic Scholar API (DOI cross-check; ACM DL was 403) | Title, authors, year, venue match. |
-| wood1976role | PASS | Semantic Scholar API (DOI cross-check; Wiley was 402) | Title, authors, year, venue match. |
+| wood1976role | PASS | Semantic Scholar API (DOI cross-check; Wiley was 403) | Title, authors, year, venue match. |
 | graesser2004autotutor | PASS | https://digitalcommons.memphis.edu/facpubs/7458/ | Title, 7-author list, journal, year, vol/pages match. |
 | rivers2017datadriven | PASS | Semantic Scholar + web search (Springer login-walled) | Title, authors match. .bib's year=2017 is the print/volume year (27(1), 37-64); S2's 2015 is the online-first date — not a discrepancy. |
 | phung2023generative | PASS | https://arxiv.org/abs/2306.17156 | Title, 8-author list, year match. |
@@ -65,6 +65,6 @@ Resolved via the CrossRef API (`https://api.crossref.org/works/10.1007/BF0109982
 
 The re-review of the fix wave flagged that three other fields added alongside the `corbett1995knowledge` fix (above) had no logged source, even though all three were independently verified before being added. Recording that provenance here:
 
-- **`liu2024socraticlm`**: `pages = {85693--85721}` and `doi = {10.52202/079017-2721}` — confirmed against the official NeurIPS BibTeX export (`https://proceedings.neurips.cc/paper_files/paper/26554-/bibtex`), which lists these exact values.
+- **`liu2024socraticlm`**: `pages = {85693--85721}` and `doi = {10.52202/079017-2721}` — confirmed against the official NeurIPS BibTeX export (`https://proceedings.neurips.cc/paper_files/paper/26554-/bibtex`), which lists these exact values. *(Re-checked during the audit-fix pass: a later audit flagged this URL as malformed because it does not use the `.../paper/2024/hash/<hash>-Abstract-Conference.html` shape of the entry's `url` field. It is not malformed — NeurIPS serves BibTeX from a separate internal paper-id route, `/paper_files/paper/<id>-/bibtex`, and this URL returns HTTP 200 with the SocraticLM record: `@inproceedings{NEURIPS2024_9bae399d, ... doi = {10.52202/079017-2721}, pages = {85693--85721} ...}`, matching both manually-added fields. The corresponding human-readable abstract page is `https://proceedings.neurips.cc/paper_files/paper/2024/hash/9bae399d1f34b8650351c1bd3692aeae-Abstract-Conference.html`, i.e. the entry's own `url` field.)*
 - **`ghosh2020contextaware`**: `doi = {10.1145/3394486.3403282}`, `eprint = {2007.12324}` — the arXiv ID was confirmed by fetching `https://arxiv.org/abs/2007.12324` (title "Context-Aware Attentive Knowledge Tracing", authors Ghosh/Heffernan/Lan match); the DOI was confirmed by resolving it through the Semantic Scholar Graph API, which returned the same paper (same title/authors/year).
 - **`maurya2025unifying`**: `pages = {1234--1251}`, `doi = {10.18653/v1/2025.naacl-long.57}` — confirmed directly against the ACL Anthology page (`https://aclanthology.org/2025.naacl-long.57/`), which lists both fields verbatim.
