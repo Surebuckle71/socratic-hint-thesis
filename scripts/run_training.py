@@ -11,6 +11,7 @@ The GPU smoke test in tests/training/test_train_qlora.py covers the same
 """
 
 import argparse
+import random
 import sys
 from pathlib import Path
 
@@ -25,6 +26,10 @@ from socratic_hint.data.training_examples import build_training_examples
 # validation split would make every eval pass slow enough to dominate the run;
 # a few hundred examples is plenty for a loss curve.
 MAX_EVAL_EXAMPLES = 256
+
+# Fixed seed for the validation-subset shuffle, so the eval-loss curve is
+# comparable across runs.
+EVAL_SUBSET_SEED = 3407
 
 # Roughly how many passes over the training data to make.
 TARGET_EPOCHS = 2
@@ -87,6 +92,10 @@ def main() -> int:
     if not args.no_eval:
         print("Loading MathDial validation split...")
         eval_dialogues, eval_examples = build_examples("validation")
+        # Shuffle before slicing. build_examples emits in qid order, so a plain
+        # head-slice would compute the whole validation-loss curve on a narrow
+        # band of qid-adjacent problems. Seeded, so the subset is reproducible.
+        random.Random(EVAL_SUBSET_SEED).shuffle(eval_examples)
         eval_examples = eval_examples[:MAX_EVAL_EXAMPLES]
         print(
             f"  {len(eval_dialogues)} dialogues -> {len(eval_examples)} eval examples "
@@ -96,7 +105,18 @@ def main() -> int:
     # Build a config first so the derived step count uses the real batch sizes.
     base = TrainConfig(output_dir=args.output_dir, max_steps=1)
     effective_batch = base.per_device_train_batch_size * base.gradient_accumulation_steps
-    max_steps = args.max_steps or derive_max_steps(len(train_examples), effective_batch)
+    # `is not None`, not truthiness: `--max-steps 0` is falsy, so `or` silently
+    # substituted the derived default instead of honouring what was asked.
+    if args.max_steps is not None:
+        if args.max_steps < 1:
+            print(
+                f"ERROR: --max-steps must be >= 1 (got {args.max_steps}).",
+                file=sys.stderr,
+            )
+            return 1
+        max_steps = args.max_steps
+    else:
+        max_steps = derive_max_steps(len(train_examples), effective_batch)
 
     config = TrainConfig(output_dir=args.output_dir, max_steps=max_steps)
 
