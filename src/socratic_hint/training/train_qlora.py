@@ -101,12 +101,20 @@ def train(
     examples: list[TrainingExample],
     config: TrainConfig,
     eval_examples: list[TrainingExample] | None = None,
+    resume_from_checkpoint: str | bool | None = None,
 ) -> Path:
     """Fine-tune the base model on `examples`.
 
     `eval_examples` (typically built from `load_mathdial("validation")`) turns
     on periodic evaluation so a real run has a validation-loss signal. When it
     is omitted — as in the GPU smoke test — evaluation is disabled entirely.
+
+    `resume_from_checkpoint`: `True` auto-detects the latest `checkpoint-N`
+    under `config.output_dir` (the periodic saves `save_steps` already
+    produces); a path string resumes from that specific checkpoint directory.
+    Restores model/optimizer/scheduler/RNG state and the global step count, so
+    training continues rather than restarting — `config.max_steps` is still
+    the target *total* step count, not additional steps from here.
     """
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=BASE_MODEL,
@@ -156,7 +164,7 @@ def train(
         eval_dataset=eval_dataset,
         processing_class=tokenizer,
     )
-    trainer.train()
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
     model.save_pretrained(str(config.output_dir))

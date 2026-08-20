@@ -88,6 +88,13 @@ def main() -> int:
         action="store_true",
         help="Skip the validation-loss signal (faster, but flies blind).",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from the latest checkpoint-N under --output-dir (auto-detected) "
+        "instead of starting fresh. --max-steps, if given, is still the target "
+        "TOTAL step count, not additional steps from here.",
+    )
     args = parser.parse_args()
 
     print("Loading MathDial train split...")
@@ -136,7 +143,12 @@ def main() -> int:
         f"lr={config.learning_rate}, checkpoint every {config.save_steps} steps"
     )
 
-    output_dir = train(train_examples, config, eval_examples=eval_examples)
+    output_dir = train(
+        train_examples,
+        config,
+        eval_examples=eval_examples,
+        resume_from_checkpoint=True if args.resume else None,
+    )
     print(f"Done. Checkpoint written to: {output_dir}")
     return 0
 
