@@ -8,6 +8,7 @@ import pytest
 pytest.importorskip("unsloth")
 
 from socratic_hint.backends.finetuned import FinetunedBackend  # noqa: E402
+from socratic_hint.output_format import PROMPT_COMPLETION_SEPARATOR  # noqa: E402
 from socratic_hint.types import DialogueTurn  # noqa: E402
 
 
@@ -46,6 +47,15 @@ def test_infer_and_hint_parses_generated_text(tmp_path):
     assert "Solve 2+2." in prompt_arg
     assert "State:" in prompt_arg
 
+    # Training prompts end with PROMPT_COMPLETION_SEPARATOR (see
+    # train_qlora.py's examples_to_hf_dataset) — the inference-time prompt
+    # must match byte-for-byte, or every generation is off-distribution.
+    # This is the inference-side half of the fix for a real bug found during
+    # audit: Qwen's tokenizer merges the prompt's trailing character with a
+    # completion-side separator, so the separator has to live on the prompt
+    # side on both the training and inference paths, not just one.
+    assert prompt_arg.endswith(PROMPT_COMPLETION_SEPARATOR)
+
 
 def test_infer_and_hint_suppress_state_passes_through(tmp_path):
     fake_model = MagicMock()
@@ -72,3 +82,4 @@ def test_infer_and_hint_suppress_state_passes_through(tmp_path):
     # prompt sent to the tokenizer reflects suppress_state=True
     prompt_arg = fake_tokenizer.call_args.args[0]
     assert "State:" not in prompt_arg
+    assert prompt_arg.endswith(PROMPT_COMPLETION_SEPARATOR)

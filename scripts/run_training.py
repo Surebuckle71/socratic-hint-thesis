@@ -36,7 +36,17 @@ TARGET_EPOCHS = 2
 # Guard rails on the derived step count, so an unexpected dataset size cannot
 # produce a run that is trivially short or absurdly long.
 MIN_STEPS = 200
-MAX_STEPS = 2000
+# `build_training_examples` now emits two variants per tutor turn (a
+# state-conditioned one and a state-suppressed one — see
+# src/socratic_hint/data/training_examples.py), roughly doubling the example
+# count from what MAX_STEPS was originally sized for. Left at the old 2000,
+# TARGET_EPOCHS=2 would silently resolve to ~1.19 real epochs, meaning
+# condition 3 (the thesis's headline, state-conditioned condition) would see
+# its own prompt format ~40% less than the design intended. Raised to give
+# headroom above the ~3371 steps that 2 real epochs over the full (post-fix)
+# 2035-dialogue train split actually needs; if the train split size changes
+# materially, re-derive this number rather than trusting it blindly.
+MAX_STEPS = 3500
 
 
 def build_examples(split: str):

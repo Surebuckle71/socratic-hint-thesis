@@ -143,13 +143,17 @@ previous run rather than interleaving with it.
 Before anything is evaluated, the script drops every test dialogue whose `qid` also appears in
 the training pool (train + validation, both carved from MathDial's published `train` split).
 MathDial's official split separates **dialogues**, not **problems**: an audit of the real dataset
-found 80.7% of test qids also present in train, and 59.8% of test dialogues (358/599) repeating an
-identical `(question, student_incorrect_solution)` pair from train. Evaluating the fine-tuned
-conditions on problems they were fine-tuned on would hand them a systematic advantage in exactly
-the comparison the thesis rests on. The filter removes **358 of 599** test dialogues, leaving 241
-genuinely held-out ones, and prints those counts so the reduction is never silent. `load_mathdial`
-itself is deliberately left alone — it still returns MathDial's official splits faithfully; the
-filtering is explicit at the point where it matters.
+found 80.7% of test qids also present in that pool. A stricter, independent check — test dialogues
+whose exact `(question, student_incorrect_solution)` pair is present in train *alone* — finds 317
+of 599 (52.9%), confirming this is real problem-level leakage and not just qid reuse with a
+superficially different problem statement. Evaluating the fine-tuned conditions on problems they
+were fine-tuned on would hand them a systematic advantage in exactly the comparison the thesis
+rests on. The filter removes **358 of 599** test dialogues (the qid-overlap count, the actual
+operative filter — not the same number as the 317 above, which uses a different, stricter
+criterion and a different comparison pool), leaving 241 genuinely held-out ones, and prints those
+counts so the reduction is never silent. `load_mathdial` itself is deliberately left alone — it
+still returns MathDial's official splits faithfully; the filtering is explicit at the point where
+it matters.
 
 ## Interpreting the state-adaptivity metric
 

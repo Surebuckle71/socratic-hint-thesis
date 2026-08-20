@@ -1,20 +1,21 @@
 """Tests for the evaluation entry point in `scripts/run_evaluation.py`.
 
-The script imports FinetunedBackend, which imports `unsloth` at module level,
-so this whole module is skipped on a base install (same pattern as
-tests/backends/test_finetuned.py) rather than erroring at collection time.
+`scripts/run_evaluation.py` imports `FinetunedBackend` (and therefore
+`unsloth`) lazily inside `main()`, not at module level, specifically so this
+module — and the pure functions it tests, `build_adaptivity_pairs` and
+`filter_leaked_test_examples` — can be imported and tested on a base install
+with no training stack present. Do not reintroduce a module-level
+`FinetunedBackend`/`unsloth` import in the script without also re-adding an
+`importorskip` guard here; that combination is what silently skipped this
+whole file's coverage before.
 """
 
 import importlib.util
 import sys
 from pathlib import Path
 
-import pytest
-
-pytest.importorskip("unsloth")
-
-from socratic_hint.data.mathdial_loader import MathDialExample  # noqa: E402
-from socratic_hint.types import DialogueTurn  # noqa: E402
+from socratic_hint.data.mathdial_loader import MathDialExample
+from socratic_hint.types import DialogueTurn
 
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "run_evaluation.py"
 

@@ -26,8 +26,6 @@ import argparse
 import sys
 from pathlib import Path
 
-from socratic_hint.backends.finetuned import FinetunedBackend
-
 from socratic_hint.backends.prompted import PromptedBackend
 from socratic_hint.data.mathdial_loader import MathDialExample, load_mathdial
 from socratic_hint.data.state_labels import derive_state_labels
@@ -134,11 +132,17 @@ def filter_leaked_test_examples(
 ) -> list[MathDialExample]:
     """Drop test dialogues whose `qid` also appears in the training pool.
 
-    MathDial's published train/test split is dialogue-level, not problem-level:
-    80.7% of test qids also occur in train, and 59.8% of test dialogues
-    (358/599) repeat an identical `(question, student_incorrect_solution)` pair
-    from train. Evaluating the fine-tuned conditions on those would give them a
-    systematic advantage in exactly the comparison the thesis rests on.
+    MathDial's published train/test split is dialogue-level, not problem-level.
+    `train_qids` here is the qid set of train + validation (both carved from
+    HF's single published `train` split — see `load_mathdial`): 80.7% of test
+    qids also occur in that pool, and this filter drops 358 of 599 test
+    dialogues, leaving 241. A stricter, independent measure — test dialogues
+    whose exact `(question, student_incorrect_solution)` pair is present in
+    train ALONE (not train+validation) — finds 317 (52.9%), confirming the
+    leakage is not just qid reuse with a cosmetically different problem
+    statement. Evaluating the fine-tuned conditions on leaked problems would
+    give them a systematic advantage in exactly the comparison the thesis
+    rests on.
     """
     return [ex for ex in test_examples if ex.qid not in train_qids]
 
@@ -178,6 +182,16 @@ def format_results_table(results: list[ConditionResult]) -> str:
 
 
 def main() -> int:
+    # Imported lazily (not at module level) so that this module — including
+    # the pure functions above (`build_adaptivity_pairs`,
+    # `filter_leaked_test_examples`), which cover two of the fixes this audit
+    # found — can be imported and tested without unsloth installed. A
+    # module-level import here made the whole test file depend on
+    # `pytest.importorskip("unsloth")`, silently skipping coverage of those
+    # two functions on any environment without the training stack (the base
+    # install this repo explicitly supports).
+    from socratic_hint.backends.finetuned import FinetunedBackend
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "checkpoint_dir",
