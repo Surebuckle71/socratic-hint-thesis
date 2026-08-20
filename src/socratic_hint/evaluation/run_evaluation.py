@@ -22,10 +22,13 @@ class ConditionResult:
     condition_name: str
     mean_judge_scores: dict[str, float]
     convergence_rate: float
-    # None when no adaptivity pairs were supplied — distinct from a measured 0.0.
+    # None when no adaptivity pairs were supplied, or when every pair failed —
+    # distinct from a measured 0.0.
     state_adaptivity_rate: float | None
     # Examples that raised and were skipped, so partial runs are never silent.
     failed_examples: int = 0
+    # Adaptivity pairs that raised and were skipped, same rationale.
+    failed_adaptivity_pairs: int = 0
 
 
 def format_dialogue_context(turns: list[DialogueTurn]) -> str:
@@ -54,14 +57,21 @@ def evaluate_condition(
             makes the spec's "condition 2: fine-tuned model, state-conditioning
             suppressed" ablation runnable — the same weights, generating
             without state conditioning.
-        results_path: optional JSONL file; one line is appended per example as
-            it completes, so a multi-hour run yields partial results
-            incrementally instead of only at the end.
+        results_path: optional JSONL file; truncated once at the start of the
+            condition, then one line is appended per example as it completes,
+            so a multi-hour run yields partial results incrementally instead of
+            only at the end.
 
     A failure on one example (unparseable generation, malformed judge JSON) is
     recorded and skipped rather than aborting the run; the count is reported
     on the result as `failed_examples`.
     """
+    # Truncate once, here — not per example. Appending without truncating means
+    # re-running into the same --results-dir silently interleaves two runs'
+    # records into one file with no way to tell them apart.
+    if results_path is not None:
+        results_path.write_text("", encoding="utf-8")
+
     judge_scores: list[dict[str, int]] = []
     convergences: list[bool] = []
     failed = 0
@@ -124,11 +134,27 @@ def evaluate_condition(
 
     # Empty pairs would make run_batch raise; report "not measured" instead of
     # inventing a real-looking 0.0.
-    adaptivity_rate = (
-        adaptivity_diagnostic.run_batch(backend, adaptivity_pairs, suppress_state=suppress_state)
-        if adaptivity_pairs
-        else None
-    )
+    adaptivity_rate: float | None = None
+    failed_pairs = 0
+    if adaptivity_pairs:
+        batch = adaptivity_diagnostic.run_batch(
+            backend, adaptivity_pairs, suppress_state=suppress_state
+        )
+        adaptivity_rate = batch.net_rate
+        failed_pairs = batch.failed_pairs
+        _append_result(
+            results_path,
+            {
+                "condition": condition_name,
+                "record_type": "adaptivity_batch",
+                "suppress_state": suppress_state,
+                "net_rate": batch.net_rate,
+                "differ_rate": batch.differ_rate,
+                "noise_rate": batch.noise_rate,
+                "evaluated_pairs": batch.evaluated_pairs,
+                "failed_pairs": batch.failed_pairs,
+            },
+        )
 
     return ConditionResult(
         condition_name=condition_name,
@@ -136,6 +162,7 @@ def evaluate_condition(
         convergence_rate=convergence_rate,
         state_adaptivity_rate=adaptivity_rate,
         failed_examples=failed,
+        failed_adaptivity_pairs=failed_pairs,
     )
 
 
