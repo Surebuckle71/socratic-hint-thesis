@@ -3,7 +3,11 @@ from pathlib import Path
 from unsloth import FastLanguageModel
 
 from socratic_hint.backends.base import HintBackend
-from socratic_hint.output_format import format_prompt, parse_model_output
+from socratic_hint.output_format import (
+    PROMPT_COMPLETION_SEPARATOR,
+    format_prompt,
+    parse_model_output,
+)
 from socratic_hint.types import DialogueTurn, HintResult
 
 
@@ -22,7 +26,15 @@ class FinetunedBackend(HintBackend):
         problem: str,
         suppress_state: bool = False,
     ) -> HintResult:
-        prompt = format_prompt(dialogue_history, problem, suppress_state=suppress_state)
+        # The training prompts end with this separator (see
+        # `examples_to_hf_dataset`), so appending it here makes the inference
+        # context byte-identical to what the model was fine-tuned on. Without
+        # it the final token differs (`>` vs the merged `>\n\n`), putting every
+        # generation slightly off-distribution.
+        prompt = (
+            format_prompt(dialogue_history, problem, suppress_state=suppress_state)
+            + PROMPT_COMPLETION_SEPARATOR
+        )
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
         output_ids = self.model.generate(**inputs, max_new_tokens=512)
         raw_text = self.tokenizer.decode(

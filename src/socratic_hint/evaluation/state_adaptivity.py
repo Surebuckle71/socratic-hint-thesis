@@ -53,6 +53,20 @@ class StateAdaptivityResult:
     noise_control_differ: bool
 
 
+@dataclass(frozen=True)
+class StateAdaptivityBatchResult:
+    """Batch-level adaptivity measurement, with failures made visible.
+
+    `net_rate` is None when every pair failed — distinct from a measured 0.0.
+    """
+
+    net_rate: float | None
+    differ_rate: float | None
+    noise_rate: float | None
+    evaluated_pairs: int
+    failed_pairs: int
+
+
 class StateAdaptivityDiagnostic:
     def run(
         self,
@@ -88,12 +102,19 @@ class StateAdaptivityDiagnostic:
         backend: HintBackend,
         pairs: list[StateAdaptivityPair],
         suppress_state: bool = False,
-    ) -> float:
+    ) -> StateAdaptivityBatchResult:
         """Adaptivity rate net of the sampling-noise floor.
 
-        Returns `P(differ | different history) - P(differ | same history)`.
-        Can be negative when noise exceeds signal — reported honestly rather
-        than clamped to zero.
+        `net_rate` is `P(differ | different history) - P(differ | same
+        history)`. It can be negative when noise exceeds signal — reported
+        honestly rather than clamped to zero.
+
+        Each pair costs three generations, so a full run issues thousands of
+        them. A single unparseable generation (`parse_model_output` raises
+        `ValueError` on, say, a bolded hint line) must not destroy a multi-hour
+        run, so per-pair failures are caught, counted, and excluded from the
+        rates — mirroring how `evaluate_condition` handles its per-example
+        loop.
 
         Raises:
             ValueError: if `pairs` is empty. Returning 0.0 for no input would
@@ -101,7 +122,30 @@ class StateAdaptivityDiagnostic:
         """
         if not pairs:
             raise ValueError("adaptivity_pairs must not be empty")
-        results = [self.run(backend, pair, suppress_state=suppress_state) for pair in pairs]
+
+        results: list[StateAdaptivityResult] = []
+        failed = 0
+        for pair in pairs:
+            try:
+                results.append(self.run(backend, pair, suppress_state=suppress_state))
+            except Exception:  # noqa: BLE001 - one bad pair must not kill the batch
+                failed += 1
+
+        if not results:
+            return StateAdaptivityBatchResult(
+                net_rate=None,
+                differ_rate=None,
+                noise_rate=None,
+                evaluated_pairs=0,
+                failed_pairs=failed,
+            )
+
         differ_rate = sum(1 for r in results if r.hints_differ) / len(results)
         noise_rate = sum(1 for r in results if r.noise_control_differ) / len(results)
-        return differ_rate - noise_rate
+        return StateAdaptivityBatchResult(
+            net_rate=differ_rate - noise_rate,
+            differ_rate=differ_rate,
+            noise_rate=noise_rate,
+            evaluated_pairs=len(results),
+            failed_pairs=failed,
+        )

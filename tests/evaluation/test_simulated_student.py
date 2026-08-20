@@ -1,7 +1,12 @@
 from unittest.mock import MagicMock
 
 from socratic_hint.backends.base import HintBackend
-from socratic_hint.evaluation.simulated_student import SimulatedStudentEvaluator
+import pytest
+
+from socratic_hint.evaluation.simulated_student import (
+    SimulatedStudentEvaluator,
+    _reads_as_yes,
+)
 from socratic_hint.types import DialogueTurn, HintResult
 
 
@@ -47,6 +52,47 @@ class RecordingBackend(HintBackend):
             }
         )
         return HintResult(hint="Try again.", state=None)
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "YES",
+        "yes",
+        "  YES  ",
+        "**YES**",
+        '"YES"',
+        "YES.",
+        "- YES",
+        "YES\nThe student computed 4.",
+    ],
+)
+def test_reads_as_yes_tolerates_trivial_formatting(raw):
+    """A strict startswith("YES") read every one of these as NO, which only
+    ever depressed convergence_rate — a silent, one-directional undercount."""
+    assert _reads_as_yes(raw) is True
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "NO",
+        "no",
+        "**NO**",
+        "NO.",
+        "The student did not reach the correct answer.",
+        "",
+    ],
+)
+def test_reads_as_yes_rejects_negatives(raw):
+    assert _reads_as_yes(raw) is False
+
+
+def test_reads_as_yes_ignores_yes_buried_deep_in_prose():
+    """The window is short on purpose: a discursive answer that merely
+    mentions "yes" later on is not a verdict."""
+    raw = "The student made an arithmetic slip, so the answer is not yes at all."
+    assert _reads_as_yes(raw) is False
 
 
 def test_run_converges_when_student_reply_judged_correct():

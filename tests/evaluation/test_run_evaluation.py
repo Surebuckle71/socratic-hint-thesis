@@ -10,6 +10,7 @@ from socratic_hint.evaluation.run_evaluation import (
     format_dialogue_context,
 )
 from socratic_hint.evaluation.simulated_student import SimulationResult
+from socratic_hint.evaluation.state_adaptivity import StateAdaptivityBatchResult
 from socratic_hint.types import DialogueTurn, HintResult
 
 
@@ -29,6 +30,16 @@ def make_example(qid: int, turns: list[DialogueTurn] | None = None) -> MathDialE
         ground_truth="42",
         student_incorrect_solution="x",
         turns=turns if turns is not None else [],
+    )
+
+
+def make_batch(net_rate: float, failed_pairs: int = 0) -> StateAdaptivityBatchResult:
+    return StateAdaptivityBatchResult(
+        net_rate=net_rate,
+        differ_rate=net_rate,
+        noise_rate=0.0,
+        evaluated_pairs=1,
+        failed_pairs=failed_pairs,
     )
 
 
@@ -53,7 +64,7 @@ def test_evaluate_condition_aggregates_all_three_metrics():
     ]
 
     adaptivity_diagnostic = MagicMock()
-    adaptivity_diagnostic.run_batch.return_value = 0.75
+    adaptivity_diagnostic.run_batch.return_value = make_batch(0.75)
 
     result = evaluate_condition(
         condition_name="fine_tuned_with_state",
@@ -143,7 +154,7 @@ def test_evaluate_condition_threads_suppress_state():
         converged=True, turns_taken=1, transcript=make_transcript()
     )
     adaptivity_diagnostic = MagicMock()
-    adaptivity_diagnostic.run_batch.return_value = 0.1
+    adaptivity_diagnostic.run_batch.return_value = make_batch(0.1)
 
     evaluate_condition(
         condition_name="fine_tuned_without_state",
@@ -239,6 +250,60 @@ def test_evaluate_condition_writes_incremental_results(tmp_path):
     # Failures are persisted too, so partial output never hides data loss.
     assert records[1]["qid"] == 2
     assert "RuntimeError" in records[1]["error"]
+
+
+def test_evaluate_condition_reports_failed_adaptivity_pairs():
+    judge = MagicMock()
+    judge.score.return_value = JudgeScore(scores={"correctness": 5}, rationale="r")
+    student_evaluator = MagicMock()
+    student_evaluator.run.return_value = SimulationResult(
+        converged=True, turns_taken=1, transcript=make_transcript()
+    )
+    adaptivity_diagnostic = MagicMock()
+    adaptivity_diagnostic.run_batch.return_value = make_batch(0.4, failed_pairs=7)
+
+    result = evaluate_condition(
+        condition_name="c",
+        backend=FixedHintBackend(),
+        test_examples=[make_example(1)],
+        adaptivity_pairs=[object()],
+        judge=judge,
+        student_evaluator=student_evaluator,
+        adaptivity_diagnostic=adaptivity_diagnostic,
+    )
+
+    assert result.state_adaptivity_rate == 0.4
+    # Skipped pairs must surface on the result, never vanish silently.
+    assert result.failed_adaptivity_pairs == 7
+
+
+def test_evaluate_condition_truncates_results_file_between_runs(tmp_path):
+    """Re-running into the same --results-dir must replace, not interleave."""
+    judge = MagicMock()
+    judge.score.return_value = JudgeScore(scores={"correctness": 4}, rationale="r")
+    student_evaluator = MagicMock()
+    student_evaluator.run.return_value = SimulationResult(
+        converged=True, turns_taken=1, transcript=make_transcript()
+    )
+    results_path = tmp_path / "results.jsonl"
+
+    def run_once():
+        evaluate_condition(
+            condition_name="c",
+            backend=FixedHintBackend(),
+            test_examples=[make_example(1), make_example(2)],
+            adaptivity_pairs=[],
+            judge=judge,
+            student_evaluator=student_evaluator,
+            adaptivity_diagnostic=MagicMock(),
+            results_path=results_path,
+        )
+
+    run_once()
+    run_once()
+
+    records = [json.loads(line) for line in results_path.read_text().splitlines()]
+    assert len(records) == 2
 
 
 def test_evaluate_condition_reports_none_adaptivity_when_no_pairs():

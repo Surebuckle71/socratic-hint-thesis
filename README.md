@@ -111,6 +111,18 @@ to 200–2000); override with `--max-steps`. A validation split drives a periodi
 disable it with `--no-eval`. Checkpoints are written periodically, so a crash mid-run does not
 lose the whole job.
 
+Every tutor turn yields **two** training examples, not one: the state-conditioned variant
+(`State:` + `Hint:`) and a state-suppressed variant (hint only). The evaluation harness runs a
+`suppress_state=True` ablation against these same weights, so the suppressed prompt format has to
+be something the model was actually trained on — otherwise that condition would be testing an
+unseen prompt format rather than the absence of state conditioning. On the real train split this
+gives 2035 dialogues → 26,968 examples (13,484 of each variant).
+
+Loss is computed on the **completion only**. The dataset is handed to TRL as separate
+`prompt`/`completion` columns, which makes `SFTTrainer` resolve `completion_only_loss` to `True`
+and mask prompt tokens out of the loss; with a flattened single `text` field, ~90% of the loss
+signal went into reproducing dialogue history the model is never asked to generate.
+
 ### Evaluation
 
 ```powershell
@@ -120,9 +132,28 @@ lose the whole job.
 Requires `ANTHROPIC_API_KEY` (the judge and simulated student are API-backed). Runs all three
 conditions and prints a comparison table across all three metrics. Use `--limit` for a cheap
 pilot run before committing to the full test split. With `--results-dir`, per-example results are
-appended as JSONL **as the run progresses**, so a multi-hour run yields partial output rather than
+written as JSONL **as the run progresses**, so a multi-hour run yields partial output rather than
 nothing-until-the-end; a single malformed generation is recorded and skipped instead of aborting
-the run, and the count surfaces in the results table's `failed` column.
+the run, and the counts surface in the results table's `failed` and `failed_pairs` columns. The
+file is truncated once per condition, so re-running into the same `--results-dir` replaces the
+previous run rather than interleaving with it.
+
+#### Problem-level leakage filtering
+
+Before anything is evaluated, the script drops every test dialogue whose `qid` also appears in
+the training pool (train + validation, both carved from MathDial's published `train` split).
+MathDial's official split separates **dialogues**, not **problems**: an audit of the real dataset
+found 80.7% of test qids also present in that pool. A stricter, independent check — test dialogues
+whose exact `(question, student_incorrect_solution)` pair is present in train *alone* — finds 317
+of 599 (52.9%), confirming this is real problem-level leakage and not just qid reuse with a
+superficially different problem statement. Evaluating the fine-tuned conditions on problems they
+were fine-tuned on would hand them a systematic advantage in exactly the comparison the thesis
+rests on. The filter removes **358 of 599** test dialogues (the qid-overlap count, the actual
+operative filter — not the same number as the 317 above, which uses a different, stricter
+criterion and a different comparison pool), leaving 241 genuinely held-out ones, and prints those
+counts so the reduction is never silent. `load_mathdial` itself is deliberately left alone — it
+still returns MathDial's official splits faithfully; the filtering is explicit at the point where
+it matters.
 
 ## Interpreting the state-adaptivity metric
 
@@ -137,3 +168,28 @@ adaptivity = P(differ | different history) - P(differ | same history)
 
 This value can be negative when noise exceeds signal. It is reported as-is rather than clamped,
 because a negative value is genuine evidence against the thesis's claim.
+
+### How the contrasted histories are chosen
+
+Two constraints keep the diagnostic measuring mastery rather than context volume:
+
+- **The dialogue-opening turn is never a candidate.** MathDial dialogues open with a `(generic)`
+  teacher greeting, and `generic` happens to carry the highest prior in `MOVE_TO_MASTERY_PRIOR`
+  (0.7). A plain argmax therefore picked turn 0 as the "high mastery" history in 84.4% of test
+  dialogues (482/571 pairs) — meaning that history was **empty**, contrasted against a
+  "low mastery" history averaging ~5 turns. The old metric was measuring *hint with no context*
+  vs *hint with lots of context*. A greeting also carries no diagnostic signal about the student:
+  nothing has been exchanged yet that could justify calling the state "high mastery".
+- **Both histories must be non-empty and within 2 turns of each other in length.** MathDial
+  alternates strictly between teacher and student, so two distinct tutor turns are at least two
+  turns apart — a threshold of 1 is unsatisfiable in practice (17 of 599 dialogues admit any pair,
+  versus 489 at `<= 2`). Two turns is one extra exchange, the tightest length match the corpus
+  structure permits.
+
+A dialogue admitting no such pair is **skipped and counted**, never replaced by a degenerate
+fallback pair. On the leakage-filtered test set this yields 191 pairs from 241 dialogues (50
+skipped), with mean history lengths of 7.70 (low) vs 7.52 (high) and zero empty histories.
+
+The residual limitation is that the two histories still differ in *content*, and the mastery
+priors are silver labels derived from teacher move tags — so this remains a directional
+diagnostic. It is no longer dominated by a length artefact.

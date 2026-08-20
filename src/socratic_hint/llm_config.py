@@ -26,6 +26,8 @@ modes (leaked reasoning tags, tool calls written into visible text).
 room to finish before the visible answer is produced.
 """
 
+import os
+
 DEFAULT_MODEL = "claude-sonnet-5"
 
 # Floor for max_tokens on every call. Thinking tokens are billed against
@@ -52,6 +54,26 @@ def default_thinking_kwargs() -> dict:
         "thinking": {"type": "adaptive"},
         "output_config": {"effort": "low"},
     }
+
+
+def require_api_key() -> str:
+    """The Anthropic API key, or a clear error explaining what to set.
+
+    `os.environ["ANTHROPIC_API_KEY"]` raises a bare `KeyError:
+    'ANTHROPIC_API_KEY'`, which says nothing about which component needed it or
+    what to do — and it surfaces at construction time, potentially after a
+    multi-GB checkpoint load. Every API-backed component routes through here so
+    the failure is actionable.
+    """
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        raise RuntimeError(
+            "ANTHROPIC_API_KEY is not set. The prompted backend, the LLM judge, "
+            "and the simulated student all make real Anthropic API calls. Set "
+            "ANTHROPIC_API_KEY in your environment, or pass an explicit "
+            "`client=Anthropic(...)` to the component."
+        )
+    return key
 
 
 def extract_text(response) -> str:

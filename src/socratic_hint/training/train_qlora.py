@@ -8,6 +8,7 @@ from datasets import Dataset
 from trl import SFTConfig, SFTTrainer
 
 from socratic_hint.data.training_examples import TrainingExample
+from socratic_hint.output_format import PROMPT_COMPLETION_SEPARATOR
 
 # Pre-quantized Qwen2.5-3B-Instruct checkpoint, for fast download + 4-bit loading.
 BASE_MODEL = "unsloth/Qwen2.5-3B-Instruct-unsloth-bnb-4bit"
@@ -67,8 +68,32 @@ def build_lora_config(config: TrainConfig) -> dict:
 
 
 def examples_to_hf_dataset(examples: list[TrainingExample]) -> Dataset:
+    """Build a TRL prompt-completion dataset (not a flattened `text` field).
+
+    With one `text` column, SFTTrainer computes loss over every token — and the
+    prompt is ~90% of the tokens here (measured: 9.1% completion), so most of
+    the gradient signal went into reproducing dialogue history the model is
+    never asked to produce. Separate `prompt`/`completion` columns make TRL
+    resolve `completion_only_loss` to True (SFTTrainer: `if
+    args.completion_only_loss is None: self.completion_only_loss = "prompt" in
+    sample and "completion" in sample`), masking prompt tokens out of the loss
+    so training optimises the state estimate and hint only.
+
+    TRL concatenates `prompt + completion` verbatim, so the joined text is
+    byte-identical to the previous flattened form. The separator goes on the
+    PROMPT side: Qwen's BPE merges the prompt's trailing `>` with a following
+    `\\n\\n` into one `>\\n\\n` token, so putting it on the completion side would
+    make `tokenize(prompt)` not a prefix of `tokenize(prompt + completion)` —
+    TRL warns about that, and the loss boundary would straddle a token.
+    `FinetunedBackend` appends the same separator at inference time.
+    """
     return Dataset.from_dict(
-        {"text": [f"{ex.prompt}\n\n{ex.completion}" for ex in examples]}
+        {
+            "prompt": [
+                f"{ex.prompt}{PROMPT_COMPLETION_SEPARATOR}" for ex in examples
+            ],
+            "completion": [ex.completion for ex in examples],
+        }
     )
 
 
@@ -108,7 +133,11 @@ def train(
         warmup_steps=config.warmup_steps,
         optim=config.optim,
         max_length=config.max_seq_length,
-        dataset_text_field="text",
+        # No `dataset_text_field`: the dataset carries `prompt`/`completion`
+        # columns, which is what makes TRL mask prompt tokens out of the loss.
+        # `completion_only_loss` is left unset so TRL resolves it to True from
+        # the dataset shape; setting it explicitly would silently do nothing if
+        # the dataset shape ever regressed to a single `text` column.
         logging_steps=1,
         # Periodic checkpointing: a crash mid-run resumes from the last save
         # instead of losing the whole run.

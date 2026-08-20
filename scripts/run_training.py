@@ -11,6 +11,7 @@ The GPU smoke test in tests/training/test_train_qlora.py covers the same
 """
 
 import argparse
+import random
 import sys
 from pathlib import Path
 
@@ -26,12 +27,26 @@ from socratic_hint.data.training_examples import build_training_examples
 # a few hundred examples is plenty for a loss curve.
 MAX_EVAL_EXAMPLES = 256
 
+# Fixed seed for the validation-subset shuffle, so the eval-loss curve is
+# comparable across runs.
+EVAL_SUBSET_SEED = 3407
+
 # Roughly how many passes over the training data to make.
 TARGET_EPOCHS = 2
 # Guard rails on the derived step count, so an unexpected dataset size cannot
 # produce a run that is trivially short or absurdly long.
 MIN_STEPS = 200
-MAX_STEPS = 2000
+# `build_training_examples` now emits two variants per tutor turn (a
+# state-conditioned one and a state-suppressed one — see
+# src/socratic_hint/data/training_examples.py), roughly doubling the example
+# count from what MAX_STEPS was originally sized for. Left at the old 2000,
+# TARGET_EPOCHS=2 would silently resolve to ~1.19 real epochs, meaning
+# condition 3 (the thesis's headline, state-conditioned condition) would see
+# its own prompt format ~40% less than the design intended. Raised to give
+# headroom above the ~3371 steps that 2 real epochs over the full (post-fix)
+# 2035-dialogue train split actually needs; if the train split size changes
+# materially, re-derive this number rather than trusting it blindly.
+MAX_STEPS = 3500
 
 
 def build_examples(split: str):
@@ -87,6 +102,10 @@ def main() -> int:
     if not args.no_eval:
         print("Loading MathDial validation split...")
         eval_dialogues, eval_examples = build_examples("validation")
+        # Shuffle before slicing. build_examples emits in qid order, so a plain
+        # head-slice would compute the whole validation-loss curve on a narrow
+        # band of qid-adjacent problems. Seeded, so the subset is reproducible.
+        random.Random(EVAL_SUBSET_SEED).shuffle(eval_examples)
         eval_examples = eval_examples[:MAX_EVAL_EXAMPLES]
         print(
             f"  {len(eval_dialogues)} dialogues -> {len(eval_examples)} eval examples "
@@ -96,7 +115,18 @@ def main() -> int:
     # Build a config first so the derived step count uses the real batch sizes.
     base = TrainConfig(output_dir=args.output_dir, max_steps=1)
     effective_batch = base.per_device_train_batch_size * base.gradient_accumulation_steps
-    max_steps = args.max_steps or derive_max_steps(len(train_examples), effective_batch)
+    # `is not None`, not truthiness: `--max-steps 0` is falsy, so `or` silently
+    # substituted the derived default instead of honouring what was asked.
+    if args.max_steps is not None:
+        if args.max_steps < 1:
+            print(
+                f"ERROR: --max-steps must be >= 1 (got {args.max_steps}).",
+                file=sys.stderr,
+            )
+            return 1
+        max_steps = args.max_steps
+    else:
+        max_steps = derive_max_steps(len(train_examples), effective_batch)
 
     config = TrainConfig(output_dir=args.output_dir, max_steps=max_steps)
 
