@@ -15,9 +15,15 @@ The three conditions are:
 
 Conditions 2 and 3 use the SAME weights; only state conditioning differs.
 That contrast is the thesis's central claim.
+
+The test split is filtered for problem-level leakage before anything is
+evaluated: MathDial's official split separates dialogues, not problems, so most
+test problems were also seen during fine-tuning. See
+`filter_leaked_test_examples`.
 """
 
 import argparse
+import sys
 from pathlib import Path
 
 from socratic_hint.backends.finetuned import FinetunedBackend
@@ -34,29 +40,85 @@ from socratic_hint.evaluation.state_adaptivity import (
 )
 
 
-def build_adaptivity_pairs(examples: list[MathDialExample]) -> list[StateAdaptivityPair]:
-    """Contrast, within one dialogue, the histories preceding the tutor's
-    lowest- and highest-inferred-mastery turns.
+# Maximum allowed difference in history length (in dialogue turns) between the
+# low- and high-mastery members of an adaptivity pair.
+#
+# Why 2 and not 1: MathDial dialogues alternate strictly between teacher and
+# student, so two DISTINCT tutor turns are at least two turns apart and a
+# threshold of 1 is unsatisfiable in practice (measured: only 17 of 599 test
+# dialogues admit any pair at all under `<= 1`, versus 489 under `<= 2`). A
+# difference of 2 is one extra exchange (one tutor turn plus one student reply)
+# — the tightest length match the corpus structure actually permits.
+MAX_HISTORY_LENGTH_DIFF = 2
 
-    LIMITATION: the two histories differ in length and content, not only in
-    inferred mastery, so a hint difference is not attributable to mastery
-    alone. The noise-floor control in StateAdaptivityDiagnostic removes
-    sampling noise but not this confound. Treat the resulting rate as a
-    directional diagnostic, not a clean causal estimate.
+
+def build_adaptivity_pairs(
+    examples: list[MathDialExample],
+) -> tuple[list[StateAdaptivityPair], int]:
+    """Contrast, within one dialogue, two histories that differ in inferred
+    mastery while being as close as possible in length.
+
+    Returns `(pairs, skipped_dialogues)`.
+
+    Two constraints keep this measuring mastery rather than context volume:
+
+    1. **Turn 0 is never a candidate.** MathDial dialogues open with a
+       `(generic)` teacher greeting, and `generic` carries the highest prior in
+       `MOVE_TO_MASTERY_PRIOR` (0.7). Taking the argmax over all tutor turns
+       therefore selected turn 0 in 84.4% of test dialogues (482/571 pairs) —
+       i.e. the "high mastery" history was usually EMPTY, contrasted against a
+       "low mastery" history averaging ~5 turns. That diagnostic measured
+       "hint with no context" vs "hint with lots of context", not mastery. A
+       dialogue-opening greeting also carries no diagnostic signal about the
+       student: no information has been exchanged yet that could justify
+       calling the state "high mastery".
+
+    2. **Both histories are non-empty and within `MAX_HISTORY_LENGTH_DIFF`
+       turns of each other**, so a length confound cannot re-enter through a
+       different mechanism. Among the candidate pairs that satisfy this, the
+       one with the largest prior gap is chosen (ties broken toward the closer
+       length, then the earlier turns, so the selection is deterministic).
+
+    A dialogue admitting no such pair is skipped and counted rather than
+    contributing a degenerate pair.
+
+    Residual limitation: the two histories still differ in CONTENT, not only in
+    inferred mastery, and the mastery priors themselves are silver labels
+    derived from teacher move tags. The metric remains a directional
+    diagnostic — but it is no longer dominated by a length artefact.
     """
     pairs: list[StateAdaptivityPair] = []
-    for example in examples:
-        labels = derive_state_labels(example)
-        if len(labels) < 2:
-            continue
-        # All subskills share one prior per turn, so any value identifies it.
-        def prior(label):
-            return next(iter(label.subskills.values()))
+    skipped = 0
 
-        low = min(labels, key=prior)
-        high = max(labels, key=prior)
-        if prior(low) >= prior(high):
-            continue  # no contrast in this dialogue
+    # All subskills share one prior per turn, so any value identifies it.
+    def prior(label) -> float:
+        return next(iter(label.subskills.values()))
+
+    for example in examples:
+        # turn_index == 0 is the dialogue-opening greeting — see docstring.
+        labels = [lab for lab in derive_state_labels(example) if lab.turn_index > 0]
+        if len(labels) < 2:
+            skipped += 1
+            continue
+
+        best = None  # (prior_gap, -length_diff, -low_index, -high_index, low, high)
+        for low in labels:
+            for high in labels:
+                gap = prior(high) - prior(low)
+                if gap <= 0:
+                    continue
+                length_diff = abs(high.turn_index - low.turn_index)
+                if length_diff > MAX_HISTORY_LENGTH_DIFF:
+                    continue
+                key = (gap, -length_diff, -low.turn_index, -high.turn_index)
+                if best is None or key > best[0]:
+                    best = (key, low, high)
+
+        if best is None:
+            skipped += 1
+            continue
+
+        _, low, high = best
         pairs.append(
             StateAdaptivityPair(
                 problem=example.problem,
@@ -64,7 +126,21 @@ def build_adaptivity_pairs(examples: list[MathDialExample]) -> list[StateAdaptiv
                 high_mastery_history=example.turns[: high.turn_index],
             )
         )
-    return pairs
+    return pairs, skipped
+
+
+def filter_leaked_test_examples(
+    test_examples: list[MathDialExample], train_qids: set[int]
+) -> list[MathDialExample]:
+    """Drop test dialogues whose `qid` also appears in the training pool.
+
+    MathDial's published train/test split is dialogue-level, not problem-level:
+    80.7% of test qids also occur in train, and 59.8% of test dialogues
+    (358/599) repeat an identical `(question, student_incorrect_solution)` pair
+    from train. Evaluating the fine-tuned conditions on those would give them a
+    systematic advantage in exactly the comparison the thesis rests on.
+    """
+    return [ex for ex in test_examples if ex.qid not in train_qids]
 
 
 def format_results_table(results: list[ConditionResult]) -> str:
@@ -78,6 +154,7 @@ def format_results_table(results: list[ConditionResult]) -> str:
         "convergence",
         "adaptivity(net)",
         "failed",
+        "failed_pairs",
     ]
     rows = []
     for result in results:
@@ -89,6 +166,7 @@ def format_results_table(results: list[ConditionResult]) -> str:
             else f"{result.state_adaptivity_rate:+.2f}"
         )
         row.append(str(result.failed_examples))
+        row.append(str(result.failed_adaptivity_pairs))
         rows.append(row)
 
     widths = [max(len(h), *(len(r[i]) for r in rows)) if rows else len(h)
@@ -125,13 +203,40 @@ def main() -> int:
 
     print("Loading MathDial test split...")
     test_examples = load_mathdial("test")
+
+    # Problem-level leakage filter. MathDial's official split separates
+    # dialogues, not problems, so most test problems were also fine-tuned on.
+    # Both the train and validation splits are carved from HF's `train` split
+    # and both are consumed by run_training.py, so both are excluded here.
+    print("Loading MathDial train/validation splits to filter problem-level leakage...")
+    train_qids = {ex.qid for ex in load_mathdial("train")}
+    train_qids |= {ex.qid for ex in load_mathdial("validation")}
+    before = len(test_examples)
+    test_examples = filter_leaked_test_examples(test_examples, train_qids)
+    print(
+        f"  Leakage filter: dropped {before - len(test_examples)} of {before} test "
+        f"dialogues whose problem (qid) also appears in the training pool; "
+        f"{len(test_examples)} held-out dialogues remain"
+    )
+    if not test_examples:
+        print("ERROR: no test examples left after leakage filtering; aborting.", file=sys.stderr)
+        return 1
+
     if args.limit is not None:
         test_examples = test_examples[: args.limit]
-    adaptivity_pairs = build_adaptivity_pairs(test_examples)
+    adaptivity_pairs, skipped_dialogues = build_adaptivity_pairs(test_examples)
     print(f"  {len(test_examples)} test examples, {len(adaptivity_pairs)} adaptivity pairs")
+    print(
+        f"  {skipped_dialogues} dialogue(s) yielded no valid adaptivity pair "
+        f"(no non-opening turn contrast within {MAX_HISTORY_LENGTH_DIFF} turns of length)"
+    )
 
+    # Construct every API-backed component BEFORE the multi-GB checkpoint load,
+    # so a missing ANTHROPIC_API_KEY fails in seconds rather than after the GPU
+    # load has already completed.
     judge = PedagogicalQualityJudge()
     student_evaluator = SimulatedStudentEvaluator(max_turns=args.max_turns)
+    prompted = PromptedBackend()
     adaptivity_diagnostic = StateAdaptivityDiagnostic()
 
     if args.results_dir is not None:
@@ -141,7 +246,7 @@ def main() -> int:
     finetuned = FinetunedBackend(checkpoint_dir=args.checkpoint_dir)
 
     conditions = [
-        ("prompted_only", PromptedBackend(), False),
+        ("prompted_only", prompted, False),
         ("finetuned_without_state", finetuned, True),
         ("finetuned_with_state", finetuned, False),
     ]
@@ -166,6 +271,11 @@ def main() -> int:
         results.append(result)
         if result.failed_examples:
             print(f"  WARNING: {result.failed_examples} example(s) failed and were skipped")
+        if result.failed_adaptivity_pairs:
+            print(
+                f"  WARNING: {result.failed_adaptivity_pairs} adaptivity pair(s) failed "
+                "and were skipped"
+            )
 
     print("\n" + format_results_table(results))
     return 0
