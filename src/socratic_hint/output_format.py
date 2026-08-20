@@ -11,6 +11,16 @@ SUBSKILLS: tuple[str, ...] = (
 )
 
 
+# Text placed between a prompt and its completion when the two are joined into
+# one training sequence. It belongs to the PROMPT side: Qwen's BPE merges the
+# prompt's final `>` with a following `\n\n` into a single `>\n\n` token, so a
+# separator on the completion side leaves the prompt/completion token boundary
+# straddling one token — TRL warns about exactly this, and the local
+# fine-tuned backend must append it too so its inference context is
+# byte-identical to what training saw.
+PROMPT_COMPLETION_SEPARATOR = "\n\n"
+
+
 def format_prompt(
     dialogue_history: list[DialogueTurn], problem: str, suppress_state: bool = False
 ) -> str:
@@ -40,13 +50,40 @@ def format_completion(state: StateEstimate, hint: str) -> str:
     return f"State: {state_str}\nHint: {hint}"
 
 
+def format_hint_only_completion(hint: str) -> str:
+    """The state-suppressed training target: exactly what
+    `parse_model_output(..., suppress_state=True)` expects to parse back."""
+    return f"Hint: {hint}"
+
+
+# Field prefixes that terminate a multi-line hint. A `Hint:` block runs to the
+# end of the generation unless one of these starts a later line.
+_FIELD_PREFIXES = ("state:", "hint:")
+
+
+def _extract_hint(raw_output: str) -> str | None:
+    """Text of the `Hint:` field, spanning every line up to the next field.
+
+    Hints routinely run to several sentences or lines (generation allows
+    thousands of tokens). Returning only the remainder of the `Hint:` line
+    would silently truncate them, and both the simulated student and the judge
+    would then see only the fragment.
+    """
+    lines = raw_output.splitlines()
+    for i, line in enumerate(lines):
+        if not line.strip().lower().startswith("hint:"):
+            continue
+        collected = [line.strip().split(":", 1)[1].strip()]
+        for later in lines[i + 1:]:
+            if later.strip().lower().startswith(_FIELD_PREFIXES):
+                break
+            collected.append(later)
+        return "\n".join(collected).strip()
+    return None
+
+
 def parse_model_output(raw_output: str, suppress_state: bool = False) -> HintResult:
-    hint_line = None
-    for line in raw_output.splitlines():
-        stripped = line.strip()
-        if stripped.lower().startswith("hint:"):
-            hint_line = stripped.split(":", 1)[1].strip()
-            break
+    hint_line = _extract_hint(raw_output)
 
     if suppress_state:
         if hint_line is None:
