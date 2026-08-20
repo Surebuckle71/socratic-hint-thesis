@@ -1,5 +1,4 @@
 import json
-import os
 from dataclasses import dataclass
 
 from anthropic import Anthropic
@@ -9,6 +8,7 @@ from socratic_hint.llm_config import (
     GENERATION_MAX_TOKENS,
     default_thinking_kwargs,
     extract_text,
+    require_api_key,
 )
 
 JUDGE_DIMENSIONS = ["scaffolding_vs_telling", "correctness", "appropriateness"]
@@ -24,7 +24,7 @@ class JudgeScore:
 
 class PedagogicalQualityJudge:
     def __init__(self, client: Anthropic | None = None, model: str = DEFAULT_MODEL):
-        self.client = client or Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        self.client = client or Anthropic(api_key=require_api_key())
         self.model = model
 
     def score(self, problem: str, dialogue_context: str, hint: str) -> JudgeScore:

@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass
 
 from anthropic import Anthropic
@@ -9,10 +8,25 @@ from socratic_hint.llm_config import (
     MIN_MAX_TOKENS,
     default_thinking_kwargs,
     extract_text,
+    require_api_key,
 )
 from socratic_hint.types import DialogueTurn
 
 __all__ = ["DEFAULT_MODEL", "SimulationResult", "SimulatedStudentEvaluator"]
+
+
+# How far into the reply to look for the YES verdict. The judge is asked for a
+# bare YES/NO, but real replies arrive wrapped: `**YES**`, `"YES"`, `YES.`, a
+# leading bullet. A strict `startswith("YES")` treats every one of those as NO,
+# which depresses `convergence_rate` in one direction only — a silent,
+# systematic under-count. A short window keeps that from happening while still
+# refusing to find "yes" buried inside a paragraph of prose.
+_YES_WINDOW_CHARS = 16
+
+
+def _reads_as_yes(raw: str) -> bool:
+    """True when the verdict text affirms, tolerating trivial formatting."""
+    return "YES" in raw.strip().upper()[:_YES_WINDOW_CHARS]
 
 
 @dataclass(frozen=True)
@@ -29,7 +43,7 @@ class SimulatedStudentEvaluator:
         student_model: str = DEFAULT_MODEL,
         max_turns: int = 5,
     ):
-        self.student_client = student_client or Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        self.student_client = student_client or Anthropic(api_key=require_api_key())
         self.student_model = student_model
         self.max_turns = max_turns
 
@@ -59,7 +73,7 @@ class SimulatedStudentEvaluator:
             messages=[{"role": "user", "content": prompt}],
             **default_thinking_kwargs(),
         )
-        return extract_text(response).strip().upper().startswith("YES")
+        return _reads_as_yes(extract_text(response))
 
     def run(
         self,

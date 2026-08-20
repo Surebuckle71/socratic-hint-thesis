@@ -1,5 +1,3 @@
-import os
-
 from anthropic import Anthropic
 
 from socratic_hint.backends.base import HintBackend
@@ -8,6 +6,7 @@ from socratic_hint.llm_config import (
     GENERATION_MAX_TOKENS,
     default_thinking_kwargs,
     extract_text,
+    require_api_key,
 )
 from socratic_hint.output_format import format_prompt, parse_model_output
 from socratic_hint.types import DialogueTurn, HintResult
@@ -17,7 +16,7 @@ __all__ = ["DEFAULT_MODEL", "PromptedBackend"]
 
 class PromptedBackend(HintBackend):
     def __init__(self, client: Anthropic | None = None, model: str = DEFAULT_MODEL):
-        self.client = client or Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        self.client = client or Anthropic(api_key=require_api_key())
         self.model = model
 
     def infer_and_hint(
