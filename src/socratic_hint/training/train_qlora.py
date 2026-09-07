@@ -154,6 +154,21 @@ def train(
         save_total_limit=config.save_total_limit,
         eval_strategy="steps" if eval_dataset is not None else "no",
         eval_steps=config.eval_steps if eval_dataset is not None else None,
+        # `save_total_limit` prunes checkpoints by RECENCY by default — on a
+        # real run that overfits in a later epoch, this silently deletes the
+        # actual best checkpoint as soon as it ages out, keeping only the
+        # worse, more-overfit tail (this happened on this project's own first
+        # real run: eval_loss bottomed out at epoch ~1.0, then climbed for the
+        # rest of training, and the epoch-1.0 checkpoint was pruned before
+        # anyone looked at the eval-loss curve). `load_best_model_at_end`
+        # makes the Trainer track the best-eval_loss checkpoint explicitly and
+        # exempts it from recency-based pruning, then loads it back into
+        # `model` after `trainer.train()` returns — so the final
+        # `save_pretrained` call below saves the BEST checkpoint, not
+        # whatever happened to be last. Only valid with an eval dataset.
+        load_best_model_at_end=eval_dataset is not None,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
         report_to="none",
     )
 

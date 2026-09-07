@@ -59,3 +59,40 @@ def test_train_smoke_produces_checkpoint(tmp_path):
 
     assert output_dir == config.output_dir
     assert (output_dir / "adapter_config.json").exists() or (output_dir / "config.json").exists()
+
+
+@pytest.mark.gpu
+def test_train_with_eval_loads_best_model_at_end(tmp_path):
+    """Regression test for a real bug found on this project's own first real
+    training run: `save_total_limit` prunes checkpoints by recency, which
+    silently deleted the actual best (lowest eval_loss) checkpoint once later,
+    worse checkpoints aged it out — nobody noticed until looking for it after
+    the run finished. `load_best_model_at_end` is only exercised when an eval
+    dataset is passed, so the original smoke test (no eval_examples) never
+    caught this. This test doesn't assert eval_loss actually improves (2
+    steps on 2 toy examples has no real signal) — it asserts the
+    with-eval code path runs to completion without crashing and that
+    checkpoint pruning still cooperates with `load_best_model_at_end`
+    (save_steps/eval_steps must match, which TrainConfig's constructor call
+    below sets explicitly rather than relying on defaults)."""
+    examples = [
+        TrainingExample(
+            prompt="Problem: Solve 2+2.\n\nState: <s1>=<0.xx>\nHint:",
+            completion="State: arithmetic_execution=0.50\nHint: What's 2 plus 2?",
+        ),
+        TrainingExample(
+            prompt="Problem: Solve 3+3.\n\nState: <s1>=<0.xx>\nHint:",
+            completion="State: arithmetic_execution=0.60\nHint: What's 3 plus 3?",
+        ),
+    ]
+    config = TrainConfig(
+        output_dir=tmp_path / "checkpoint",
+        max_steps=4,
+        save_steps=2,
+        eval_steps=2,
+    )
+
+    output_dir = train(examples, config, eval_examples=examples)
+
+    assert output_dir == config.output_dir
+    assert (output_dir / "adapter_config.json").exists() or (output_dir / "config.json").exists()
