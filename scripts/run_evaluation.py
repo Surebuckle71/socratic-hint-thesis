@@ -182,16 +182,6 @@ def format_results_table(results: list[ConditionResult]) -> str:
 
 
 def main() -> int:
-    # Imported lazily (not at module level) so that this module — including
-    # the pure functions above (`build_adaptivity_pairs`,
-    # `filter_leaked_test_examples`), which cover two of the fixes this audit
-    # found — can be imported and tested without unsloth installed. A
-    # module-level import here made the whole test file depend on
-    # `pytest.importorskip("unsloth")`, silently skipping coverage of those
-    # two functions on any environment without the training stack (the base
-    # install this repo explicitly supports).
-    from socratic_hint.backends.finetuned import FinetunedBackend
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "checkpoint_dir",
@@ -214,6 +204,17 @@ def main() -> int:
         help="If set, write per-example JSONL results here as the run progresses.",
     )
     args = parser.parse_args()
+
+    # Imported lazily (not at module level, and not at the top of main() —
+    # after arg parsing, so `--help` and bad-argument errors exit before this
+    # runs) so that this module — including the pure functions above
+    # (`build_adaptivity_pairs`, `filter_leaked_test_examples`), which cover
+    # two of the fixes this audit found — can be imported and tested without
+    # unsloth installed. A module-level import here made the whole test file
+    # depend on `pytest.importorskip("unsloth")`, silently skipping coverage
+    # of those two functions on any environment without the training stack
+    # (the base install this repo explicitly supports).
+    from socratic_hint.backends.finetuned import FinetunedBackend
 
     print("Loading MathDial test split...")
     test_examples = load_mathdial("test")
