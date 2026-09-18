@@ -24,6 +24,17 @@ reasoning, and disabling thinking outright has its own documented failure
 modes (leaked reasoning tags, tool calls written into visible text).
 `MIN_MAX_TOKENS` is the floor every call site uses so thinking always has
 room to finish before the visible answer is produced.
+
+Why thinking kwargs are chosen PER MODEL, not one-size-fits-all
+----------------------------------------------------------------
+Confirmed against a live 400 during the pilot run: adaptive thinking
+(`{"type": "adaptive"}`) is supported on every current model EXCEPT
+Haiku 4.5, which rejects it outright ("adaptive thinking is not supported
+on this model") and still requires the older `{"type": "enabled",
+"budget_tokens": N}` form. Haiku 4.5 also does not accept
+`output_config.effort` at all. Any call site that lets its model be
+swapped at runtime (the simulated student, via `--student-model`) must
+route through `thinking_kwargs_for_model`, not a single hardcoded shape.
 """
 
 import os
@@ -32,8 +43,10 @@ DEFAULT_MODEL = "claude-sonnet-5"
 
 # Floor for max_tokens on every call. Thinking tokens are billed against
 # max_tokens, so anything smaller risks exhausting the budget on thinking
-# alone and returning no text block.
-MIN_MAX_TOKENS = 1024
+# alone and returning no text block. Also large enough that Haiku 4.5's
+# fixed `budget_tokens` (below) is comfortably less than max_tokens, which
+# the API requires.
+MIN_MAX_TOKENS = 2048
 
 # Higher ceiling for call sites that must emit a non-trivial visible answer
 # (a state line + hint, or a full JSON object) rather than a single word —
@@ -44,12 +57,22 @@ MIN_MAX_TOKENS = 1024
 # MIN_MAX_TOKENS.
 GENERATION_MAX_TOKENS = 4096
 
+# Haiku 4.5's fixed thinking budget for the `enabled`/`budget_tokens` form
+# (see `thinking_kwargs_for_model`). Comfortably under MIN_MAX_TOKENS, as
+# the API requires `budget_tokens < max_tokens`.
+_HAIKU_THINKING_BUDGET = 1024
 
-def default_thinking_kwargs() -> dict:
-    """Request kwargs enabling adaptive thinking at low effort.
 
-    Spread into `client.messages.create(...)` at every call site.
+def thinking_kwargs_for_model(model: str) -> dict:
+    """Request kwargs enabling thinking, in the form the given model accepts.
+
+    Spread into `client.messages.create(...)` at every call site. Do not use
+    `default_thinking_kwargs` (removed) for a call site whose model can be
+    swapped at runtime — Haiku 4.5 needs a different shape than every other
+    current model (see module docstring).
     """
+    if model.startswith("claude-haiku"):
+        return {"thinking": {"type": "enabled", "budget_tokens": _HAIKU_THINKING_BUDGET}}
     return {
         "thinking": {"type": "adaptive"},
         "output_config": {"effort": "low"},

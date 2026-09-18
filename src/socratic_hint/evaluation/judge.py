@@ -6,9 +6,9 @@ from anthropic import Anthropic
 from socratic_hint.llm_config import (
     DEFAULT_MODEL,
     GENERATION_MAX_TOKENS,
-    default_thinking_kwargs,
     extract_text,
     require_api_key,
+    thinking_kwargs_for_model,
 )
 
 JUDGE_DIMENSIONS = ["scaffolding_vs_telling", "correctness", "appropriateness"]
@@ -42,7 +42,7 @@ class PedagogicalQualityJudge:
             model=self.model,
             max_tokens=GENERATION_MAX_TOKENS,
             messages=[{"role": "user", "content": prompt}],
-            **default_thinking_kwargs(),
+            **thinking_kwargs_for_model(self.model),
         )
         raw = extract_text(response)
         parsed = json.loads(raw)

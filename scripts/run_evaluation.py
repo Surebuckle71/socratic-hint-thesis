@@ -198,6 +198,34 @@ def main() -> int:
         "--max-turns", type=int, default=5, help="Max simulated dialogue turns per example."
     )
     parser.add_argument(
+        "--adaptivity-limit",
+        type=int,
+        default=None,
+        help=(
+            "Use only the first N adaptivity pairs instead of all of them. Only "
+            "the prompted_only condition's share of this costs API money (the "
+            "fine-tuned conditions generate locally), but it is still one of the "
+            "larger line items in a full run -- lower this for a cheap pilot."
+        ),
+    )
+    parser.add_argument(
+        "--student-model",
+        default="claude-haiku-4-5",
+        help=(
+            "Model for the SIMULATED STUDENT only (reply generation + correctness "
+            "check) -- not the judge, and not the prompted_only condition's own "
+            "hint generation. This role only has to produce a plausible student "
+            "reply and a YES/NO check, not a pedagogical judgment, so a cheaper "
+            "model is a reasonable cost lever here. It fires on every turn of "
+            "every condition, so it dominates total call volume -- swapping it "
+            "out is the single biggest cost lever this script exposes. The judge "
+            "and the prompted baseline stay on the default model (DEFAULT_MODEL) "
+            "so the thesis's actual measurement instrument and treatment "
+            "condition are not weakened for cost reasons; pass --student-model "
+            "claude-sonnet-5 to opt back into the original all-Sonnet behaviour."
+        ),
+    )
+    parser.add_argument(
         "--results-dir",
         type=Path,
         default=None,
@@ -216,6 +244,7 @@ def main() -> int:
     # (the base install this repo explicitly supports).
     from socratic_hint.backends.finetuned import FinetunedBackend
 
+    print(f"Simulated-student model: {args.student_model} (judge and prompted baseline unaffected)")
     print("Loading MathDial test split...")
     test_examples = load_mathdial("test")
 
@@ -240,6 +269,8 @@ def main() -> int:
     if args.limit is not None:
         test_examples = test_examples[: args.limit]
     adaptivity_pairs, skipped_dialogues = build_adaptivity_pairs(test_examples)
+    if args.adaptivity_limit is not None:
+        adaptivity_pairs = adaptivity_pairs[: args.adaptivity_limit]
     print(f"  {len(test_examples)} test examples, {len(adaptivity_pairs)} adaptivity pairs")
     print(
         f"  {skipped_dialogues} dialogue(s) yielded no valid adaptivity pair "
@@ -250,7 +281,9 @@ def main() -> int:
     # so a missing ANTHROPIC_API_KEY fails in seconds rather than after the GPU
     # load has already completed.
     judge = PedagogicalQualityJudge()
-    student_evaluator = SimulatedStudentEvaluator(max_turns=args.max_turns)
+    student_evaluator = SimulatedStudentEvaluator(
+        student_model=args.student_model, max_turns=args.max_turns
+    )
     prompted = PromptedBackend()
     adaptivity_diagnostic = StateAdaptivityDiagnostic()
 

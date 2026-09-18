@@ -3,8 +3,8 @@ import pytest
 from socratic_hint.llm_config import (
     DEFAULT_MODEL,
     MIN_MAX_TOKENS,
-    default_thinking_kwargs,
     extract_text,
+    thinking_kwargs_for_model,
 )
 
 
@@ -50,19 +50,30 @@ def test_extract_text_raises_when_no_text_block():
         extract_text(response)
 
 
-def test_default_thinking_kwargs_shape():
-    kwargs = default_thinking_kwargs()
+def test_thinking_kwargs_for_model_adaptive_shape():
+    kwargs = thinking_kwargs_for_model("claude-sonnet-5")
     assert kwargs == {
         "thinking": {"type": "adaptive"},
         "output_config": {"effort": "low"},
     }
 
 
-def test_default_thinking_kwargs_returns_fresh_dict():
+def test_thinking_kwargs_for_model_returns_fresh_dict():
     # Mutating one call's result must not leak into the next call site.
-    first = default_thinking_kwargs()
+    first = thinking_kwargs_for_model("claude-sonnet-5")
     first["thinking"]["type"] = "mutated"
-    assert default_thinking_kwargs()["thinking"]["type"] == "adaptive"
+    assert thinking_kwargs_for_model("claude-sonnet-5")["thinking"]["type"] == "adaptive"
+
+
+def test_thinking_kwargs_for_model_haiku_uses_budget_tokens():
+    # Confirmed against a live API 400 during the pilot run: Haiku 4.5
+    # rejects adaptive thinking outright and needs the older
+    # enabled/budget_tokens form, with no `effort` field at all.
+    kwargs = thinking_kwargs_for_model("claude-haiku-4-5")
+    assert kwargs["thinking"]["type"] == "enabled"
+    assert isinstance(kwargs["thinking"]["budget_tokens"], int)
+    assert kwargs["thinking"]["budget_tokens"] < MIN_MAX_TOKENS
+    assert "output_config" not in kwargs
 
 
 def test_shared_constants():

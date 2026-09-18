@@ -4,9 +4,9 @@ from socratic_hint.backends.base import HintBackend
 from socratic_hint.llm_config import (
     DEFAULT_MODEL,
     GENERATION_MAX_TOKENS,
-    default_thinking_kwargs,
     extract_text,
     require_api_key,
+    thinking_kwargs_for_model,
 )
 from socratic_hint.output_format import format_prompt, parse_model_output
 from socratic_hint.types import DialogueTurn, HintResult
@@ -30,7 +30,7 @@ class PromptedBackend(HintBackend):
             model=self.model,
             max_tokens=GENERATION_MAX_TOKENS,
             messages=[{"role": "user", "content": prompt}],
-            **default_thinking_kwargs(),
+            **thinking_kwargs_for_model(self.model),
         )
         raw_text = extract_text(response)
         return parse_model_output(raw_text, suppress_state=suppress_state)

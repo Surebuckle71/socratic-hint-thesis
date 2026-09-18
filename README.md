@@ -193,3 +193,27 @@ skipped), with mean history lengths of 7.70 (low) vs 7.52 (high) and zero empty 
 The residual limitation is that the two histories still differ in *content*, and the mastery
 priors are silver labels derived from teacher move tags — so this remains a directional
 diagnostic. It is no longer dominated by a length artefact.
+
+## Revision experiments (September 2026)
+
+Additional experiments run after supervisor review. Each script reads or writes under `results/`;
+none of them retrains the model. GPU scripts use the `.venv313` environment; analysis scripts need
+`scipy` (base Python).
+
+| Script | Purpose |
+| --- | --- |
+| `scripts/run_qwen_baseline.py` | Non-fine-tuned Qwen2.5-3B-Instruct, prompted with and without state (RQ3 control) |
+| `scripts/qwen_analysis.py` | Paired tests and effect sizes for the Qwen 2x2 |
+| `scripts/run_format_control.py` | Format-control ablation: constant neutral state in the `State:` field |
+| `scripts/run_second_judge.py` | Re-scores every hint with a second judge model |
+| `scripts/run_counterfactual_adaptivity.py` | Same-history counterfactual: only the injected state changes |
+| `scripts/run_greedy_counterfactual.py` | The same counterfactual under greedy decoding (no sampling noise) |
+| `scripts/semantic_adaptivity.py`, `scripts/semantic_greedy.py` | LLM-judge semantic difference for the counterfactual hints |
+| `scripts/bootstrap_adaptivity.py` | Paired bootstrap CIs for the net-adaptivity difference |
+| `scripts/effect_sizes.py`, `scripts/error_taxonomy.py` | Effect sizes and keyword-based rationale taxonomy |
+| `scripts/measure_inference.py`, `scripts/measure_training_memory.py` | Peak VRAM, latency, and throughput |
+| `scripts/build_annotation_sheet.py`, `scripts/analyze_annotation.py`, `scripts/label_sensitivity.py` | Pilot validity check of the silver labels (see `annotation/`) |
+
+Model weights are not included: the fine-tuned LoRA adapter is about 114 MB, above GitHub's
+100 MB file limit. Re-create it with `scripts/run_training.py` (about 7 to 9 hours on an RTX 4050
+Laptop GPU, 6 GB).

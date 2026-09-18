@@ -6,9 +6,9 @@ from socratic_hint.backends.base import HintBackend
 from socratic_hint.llm_config import (
     DEFAULT_MODEL,
     MIN_MAX_TOKENS,
-    default_thinking_kwargs,
     extract_text,
     require_api_key,
+    thinking_kwargs_for_model,
 )
 from socratic_hint.types import DialogueTurn
 
@@ -58,7 +58,7 @@ class SimulatedStudentEvaluator:
             model=self.student_model,
             max_tokens=MIN_MAX_TOKENS,
             messages=[{"role": "user", "content": prompt}],
-            **default_thinking_kwargs(),
+            **thinking_kwargs_for_model(self.student_model),
         )
         return extract_text(response).strip()
 
@@ -71,7 +71,7 @@ class SimulatedStudentEvaluator:
             model=self.student_model,
             max_tokens=MIN_MAX_TOKENS,
             messages=[{"role": "user", "content": prompt}],
-            **default_thinking_kwargs(),
+            **thinking_kwargs_for_model(self.student_model),
         )
         return _reads_as_yes(extract_text(response))
 
