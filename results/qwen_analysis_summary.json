@@ -1,0 +1,273 @@
+{
+  "descriptive": {
+    "claude": {
+      "n_records": 241,
+      "n_ok": 241,
+      "failed": 0,
+      "scaffolding_vs_telling": {
+        "mean": 3.962655601659751,
+        "sd": 0.6540384176246127
+      },
+      "correctness": {
+        "mean": 4.717842323651452,
+        "sd": 0.7927096936255489
+      },
+      "appropriateness": {
+        "mean": 4.643153526970955,
+        "sd": 0.7109594553591589
+      },
+      "convergence": 0.9336099585062241,
+      "mean_turns": 1.4854771784232366,
+      "adaptivity": {
+        "condition": "prompted_only",
+        "record_type": "adaptivity_batch",
+        "suppress_state": false,
+        "net_rate": 0.0,
+        "differ_rate": 1.0,
+        "noise_rate": 1.0,
+        "evaluated_pairs": 191,
+        "failed_pairs": 0
+      }
+    },
+    "qwen_p_nostate": {
+      "n_records": 241,
+      "n_ok": 241,
+      "failed": 0,
+      "scaffolding_vs_telling": {
+        "mean": 3.0580912863070537,
+        "sd": 0.9643363909784913
+      },
+      "correctness": {
+        "mean": 2.759336099585062,
+        "sd": 1.4113254611887804
+      },
+      "appropriateness": {
+        "mean": 2.5809128630705396,
+        "sd": 1.1450476685312503
+      },
+      "convergence": 0.8672199170124482,
+      "mean_turns": 1.7385892116182573,
+      "adaptivity": {
+        "condition": "qwen_prompted_no_state",
+        "record_type": "adaptivity_batch",
+        "suppress_state": true,
+        "net_rate": 0.08900523560209428,
+        "differ_rate": 1.0,
+        "noise_rate": 0.9109947643979057,
+        "evaluated_pairs": 191,
+        "failed_pairs": 0
+      }
+    },
+    "qwen_p_state": {
+      "n_records": 241,
+      "n_ok": 213,
+      "failed": 28,
+      "scaffolding_vs_telling": {
+        "mean": 2.7370892018779345,
+        "sd": 1.0216454433005673
+      },
+      "correctness": {
+        "mean": 2.5023474178403755,
+        "sd": 1.432850481164388
+      },
+      "appropriateness": {
+        "mean": 2.380281690140845,
+        "sd": 0.9421903001972634
+      },
+      "convergence": 0.8356807511737089,
+      "mean_turns": 2.028169014084507,
+      "adaptivity": {
+        "condition": "qwen_prompted_with_state",
+        "record_type": "adaptivity_batch",
+        "suppress_state": false,
+        "net_rate": 0.0,
+        "differ_rate": 1.0,
+        "noise_rate": 1.0,
+        "evaluated_pairs": 176,
+        "failed_pairs": 15
+      }
+    },
+    "ft_nostate": {
+      "n_records": 241,
+      "n_ok": 241,
+      "failed": 0,
+      "scaffolding_vs_telling": {
+        "mean": 3.5062240663900415,
+        "sd": 0.9879285228455189
+      },
+      "correctness": {
+        "mean": 3.195020746887967,
+        "sd": 1.3003749858154146
+      },
+      "appropriateness": {
+        "mean": 2.863070539419087,
+        "sd": 1.100154019143134
+      },
+      "convergence": 0.9004149377593361,
+      "mean_turns": 2.029045643153527,
+      "adaptivity": {
+        "condition": "finetuned_without_state",
+        "record_type": "adaptivity_batch",
+        "suppress_state": true,
+        "net_rate": 0.005235602094240899,
+        "differ_rate": 0.9947643979057592,
+        "noise_rate": 0.9895287958115183,
+        "evaluated_pairs": 191,
+        "failed_pairs": 0
+      }
+    },
+    "ft_state": {
+      "n_records": 241,
+      "n_ok": 240,
+      "failed": 1,
+      "scaffolding_vs_telling": {
+        "mean": 3.45,
+        "sd": 1.0296849256083653
+      },
+      "correctness": {
+        "mean": 3.0708333333333333,
+        "sd": 1.3378866638262275
+      },
+      "appropriateness": {
+        "mean": 2.845833333333333,
+        "sd": 1.1666492327846631
+      },
+      "convergence": 0.8708333333333333,
+      "mean_turns": 2.1666666666666665,
+      "adaptivity": {
+        "condition": "finetuned_with_state",
+        "record_type": "adaptivity_batch",
+        "suppress_state": false,
+        "net_rate": 0.020942408376963373,
+        "differ_rate": 0.9947643979057592,
+        "noise_rate": 0.9738219895287958,
+        "evaluated_pairs": 191,
+        "failed_pairs": 0
+      }
+    }
+  },
+  "paired": {
+    "state_suppressed: qwen_prompted -> finetuned": {
+      "n": 241,
+      "scaffolding_vs_telling": {
+        "mean_diff_b_minus_a": 0.44813278008298757,
+        "wilcoxon_p": 4.277513780301783e-07,
+        "rank_biserial": 0.4426155918000898
+      },
+      "correctness": {
+        "mean_diff_b_minus_a": 0.43568464730290457,
+        "wilcoxon_p": 0.0002875639415039099,
+        "rank_biserial": 0.304704205274412
+      },
+      "appropriateness": {
+        "mean_diff_b_minus_a": 0.2821576763485477,
+        "wilcoxon_p": 0.00347947774975305,
+        "rank_biserial": 0.2502159324961797
+      },
+      "convergence": {
+        "a_rate": 0.8672199170124482,
+        "b_rate": 0.9004149377593361,
+        "risk_diff_b_minus_a": 0.03319502074688796,
+        "only_a": 17,
+        "only_b": 25,
+        "mcnemar_exact_p": 0.27995623852893914
+      }
+    },
+    "state_conditioned: qwen_prompted -> finetuned": {
+      "n": 212,
+      "scaffolding_vs_telling": {
+        "mean_diff_b_minus_a": 0.7028301886792453,
+        "wilcoxon_p": 3.6812306706152446e-10,
+        "rank_biserial": 0.5632513334925563
+      },
+      "correctness": {
+        "mean_diff_b_minus_a": 0.589622641509434,
+        "wilcoxon_p": 1.0807252661562706e-05,
+        "rank_biserial": 0.39218913661529253
+      },
+      "appropriateness": {
+        "mean_diff_b_minus_a": 0.47641509433962265,
+        "wilcoxon_p": 1.0540320978630152e-05,
+        "rank_biserial": 0.39768087538788177
+      },
+      "convergence": {
+        "a_rate": 0.839622641509434,
+        "b_rate": 0.8726415094339622,
+        "risk_diff_b_minus_a": 0.03301886792452824,
+        "only_a": 18,
+        "only_b": 25,
+        "mcnemar_exact_p": 0.3603776529357674
+      }
+    },
+    "qwen_prompted: state_suppressed -> state_conditioned": {
+      "n": 213,
+      "scaffolding_vs_telling": {
+        "mean_diff_b_minus_a": -0.3145539906103286,
+        "wilcoxon_p": 0.001155810761560851,
+        "rank_biserial": -0.2999632285346571
+      },
+      "correctness": {
+        "mean_diff_b_minus_a": -0.29107981220657275,
+        "wilcoxon_p": 0.011021226841050726,
+        "rank_biserial": -0.2398018648018648
+      },
+      "appropriateness": {
+        "mean_diff_b_minus_a": -0.215962441314554,
+        "wilcoxon_p": 0.012887992063492414,
+        "rank_biserial": -0.24013266998341626
+      },
+      "convergence": {
+        "a_rate": 0.8732394366197183,
+        "b_rate": 0.8356807511737089,
+        "risk_diff_b_minus_a": -0.03755868544600938,
+        "only_a": 25,
+        "only_b": 17,
+        "mcnemar_exact_p": 0.27995623852893914
+      }
+    },
+    "state_conditioned: qwen_prompted -> claude": {
+      "n": 213,
+      "scaffolding_vs_telling": {
+        "mean_diff_b_minus_a": 1.2253521126760563,
+        "wilcoxon_p": 6.263883659330877e-25,
+        "rank_biserial": 0.9057788038381069
+      },
+      "correctness": {
+        "mean_diff_b_minus_a": 2.2300469483568075,
+        "wilcoxon_p": 7.49837737266601e-29,
+        "rank_biserial": 0.9563257792166572
+      },
+      "appropriateness": {
+        "mean_diff_b_minus_a": 2.272300469483568,
+        "wilcoxon_p": 1.2180044762402602e-34,
+        "rank_biserial": 0.9901507537688442
+      },
+      "convergence": {
+        "a_rate": 0.8356807511737089,
+        "b_rate": 0.9342723004694836,
+        "risk_diff_b_minus_a": 0.09859154929577474,
+        "only_a": 7,
+        "only_b": 28,
+        "mcnemar_exact_p": 0.0005082604475319386
+      }
+    }
+  },
+  "adaptivity_tests": {
+    "qwen_p_nostate": {
+      "net_rate": 0.08900523560209428,
+      "differ_rate": 1.0,
+      "noise_rate": 0.9109947643979057,
+      "pairs": 191,
+      "z_vs_zero": 4.218030443455549,
+      "p_vs_zero": 2.4644555148389813e-05
+    },
+    "qwen_p_state": {
+      "net_rate": 0.0,
+      "differ_rate": 1.0,
+      "noise_rate": 1.0,
+      "pairs": 176,
+      "z_vs_zero": NaN,
+      "p_vs_zero": NaN
+    }
+  }
+}

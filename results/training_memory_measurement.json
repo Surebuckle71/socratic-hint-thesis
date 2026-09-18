@@ -1,0 +1,30 @@
+{
+  "gpu": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "gpu_total_mb": 6140.5,
+  "optimizer_steps": 2,
+  "examples_used": 32,
+  "per_device_batch": 2,
+  "grad_accum": 8,
+  "max_seq_length": 2048,
+  "peak_allocated_mb": 3365.73583984375,
+  "peak_reserved_mb": 4690.0,
+  "smi_baseline_used_mb_before": 1035.0,
+  "smi_peak_used_mb": 5697.0,
+  "smi_peak_temp_c": 63.0,
+  "smi_baseline_temp_c": 42.0,
+  "seconds_total_including_model_load": 91.89102940000157,
+  "train_set_examples": 26968,
+  "train_token_lengths": {
+    "median": 401,
+    "p95": 948,
+    "p99": 1318,
+    "max": 2401,
+    "over_2048": 9
+  },
+  "worst_case_batch_token_lengths": {
+    "min": 1770,
+    "median": 1864,
+    "max": 2401
+  },
+  "torch": "2.11.0+cu128"
+}

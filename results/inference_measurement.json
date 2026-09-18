@@ -1,0 +1,95 @@
+{
+  "gpu": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "gpu_total_mb": 6140.5,
+  "history_turns": 6,
+  "n_dialogues": 25,
+  "warmup": 3,
+  "smi_baseline_used_mb_before_load": 1033.0,
+  "smi_peak_used_mb": 4495.0,
+  "smi_peak_temp_c": 60.0,
+  "smi_baseline_temp_c": 45.0,
+  "smi_peak_power_w": 86.7,
+  "after_load": {
+    "allocated_mb": 2419.45654296875,
+    "reserved_mb": 2484.0,
+    "peak_allocated_mb": 2517.64453125
+  },
+  "generation": {
+    "state_suppressed": {
+      "peak_allocated_mb": 2606.23876953125,
+      "peak_reserved_mb": 3422.0,
+      "prompt_tokens": {
+        "n": 25,
+        "median": 359,
+        "p10": 209,
+        "p90": 479,
+        "min": 150,
+        "max": 600
+      },
+      "new_tokens": {
+        "n": 25,
+        "median": 15,
+        "p10": 4,
+        "p90": 37,
+        "min": 4,
+        "max": 41
+      },
+      "seconds_per_hint": {
+        "n": 25,
+        "median": 1.0807839999979478,
+        "p10": 0.5572092999937013,
+        "p90": 2.2634899000040605,
+        "min": 0.5363498000006075,
+        "max": 3.60234859999764
+      },
+      "tokens_per_second": {
+        "n": 25,
+        "median": 15.37485261032518,
+        "p10": 7.457819505098108,
+        "p90": 18.618739257277493,
+        "min": 7.0894935124040455,
+        "max": 19.622274778228643
+      },
+      "hit_512_token_limit": 0
+    },
+    "state_conditioned": {
+      "peak_allocated_mb": 2612.82421875,
+      "peak_reserved_mb": 3422.0,
+      "prompt_tokens": {
+        "n": 25,
+        "median": 415,
+        "p10": 265,
+        "p90": 535,
+        "min": 206,
+        "max": 656
+      },
+      "new_tokens": {
+        "n": 25,
+        "median": 53,
+        "p10": 43,
+        "p90": 67,
+        "min": 42,
+        "max": 71
+      },
+      "seconds_per_hint": {
+        "n": 25,
+        "median": 2.6587369999979273,
+        "p10": 2.1819802000027266,
+        "p90": 3.338909300000523,
+        "min": 2.081161499998416,
+        "max": 3.5707820000025094
+      },
+      "tokens_per_second": {
+        "n": 25,
+        "median": 20.050423951915274,
+        "p10": 19.398434521306893,
+        "p90": 20.461223780431496,
+        "min": 19.028343896130476,
+        "max": 20.918350448623144
+      },
+      "hit_512_token_limit": 0
+    }
+  },
+  "adapter_size_mb": 114.25164031982422,
+  "torch": "2.11.0+cu128"
+}

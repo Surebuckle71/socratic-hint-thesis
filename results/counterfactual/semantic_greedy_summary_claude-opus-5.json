@@ -1,0 +1,6 @@
+{
+  "model": "claude-opus-5",
+  "n": 191,
+  "failed": 0,
+  "semantic_differ_rate_greedy": 0.5445026178010471
+}
