@@ -231,6 +231,17 @@ def main() -> int:
         default=None,
         help="If set, write per-example JSONL results here as the run progresses.",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Seed Python and PyTorch RNGs before generation, for repeated-run studies.",
+    )
+    parser.add_argument(
+        "--finetuned-only",
+        action="store_true",
+        help="Run only the two fine-tuned conditions (no Anthropic-API prompted_only condition).",
+    )
     args = parser.parse_args()
 
     # Imported lazily (not at module level, and not at the top of main() —
@@ -243,6 +254,16 @@ def main() -> int:
     # of those two functions on any environment without the training stack
     # (the base install this repo explicitly supports).
     from socratic_hint.backends.finetuned import FinetunedBackend
+
+    if args.seed is not None:
+        import random
+
+        import torch
+
+        random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        torch.cuda.manual_seed_all(args.seed)
+        print(f"Random seed: {args.seed}")
 
     print(f"Simulated-student model: {args.student_model} (judge and prompted baseline unaffected)")
     print("Loading MathDial test split...")
@@ -284,7 +305,7 @@ def main() -> int:
     student_evaluator = SimulatedStudentEvaluator(
         student_model=args.student_model, max_turns=args.max_turns
     )
-    prompted = PromptedBackend()
+    prompted = None if args.finetuned_only else PromptedBackend()
     adaptivity_diagnostic = StateAdaptivityDiagnostic()
 
     if args.results_dir is not None:
@@ -294,10 +315,11 @@ def main() -> int:
     finetuned = FinetunedBackend(checkpoint_dir=args.checkpoint_dir)
 
     conditions = [
-        ("prompted_only", prompted, False),
         ("finetuned_without_state", finetuned, True),
         ("finetuned_with_state", finetuned, False),
     ]
+    if prompted is not None:
+        conditions.insert(0, ("prompted_only", prompted, False))
 
     results: list[ConditionResult] = []
     for name, backend, suppress_state in conditions:
