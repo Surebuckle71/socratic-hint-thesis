@@ -31,3 +31,4 @@ annotation/gemini-code-*.py
 
 # Thesis text is kept out of the public-facing repo until submission
 thesis/
+annotation/annotation_key_DO_NOT_OPEN.csv

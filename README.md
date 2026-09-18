@@ -224,3 +224,7 @@ need `scipy` (base Python).
 Model weights are not included: the fine-tuned LoRA adapter is about 114 MB, above GitHub's 100 MB
 file limit. Re-create it with `scripts/run_training.py` (about 7 to 9 hours on an RTX 4050 Laptop
 GPU with 6 GB).
+
+The key linking each annotation item to its tutor move and silver prior is not published, so the
+sheet can be rated blind. `scripts/build_annotation_sheet.py` uses a fixed seed and writes it next
+to the sheet, and the analysis scripts read it from `annotation/`.
