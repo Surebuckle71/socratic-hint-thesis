@@ -1,0 +1,32 @@
+\begin{table}[h]
+  \centering
+  \caption{Run-to-run variation of the two fine-tuned conditions over 4 runs (the original run and 3 repeat runs with different sampling seeds): the value in each run, the mean, the standard deviation, and the 95\% $t$-interval of the mean across runs. The lower block is the paired Condition~3 minus Condition~2 difference within each run.}
+  \label{tab:repeated-runs}
+  \footnotesize
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}lXccc@{}}
+    \toprule
+    Measure & Values across runs & Mean & SD & 95\% CI \\
+    \midrule
+    \multicolumn{5}{@{}l}{\emph{Condition~2 (state suppressed)}} \\
+    Scaffolding & 3.51, 3.51, 3.51, 3.54 & 3.52 & 0.02 & [3.49, 3.55] \\
+    Correctness & 3.20, 3.07, 3.10, 3.12 & 3.12 & 0.05 & [3.04, 3.21] \\
+    Appropriateness & 2.86, 2.83, 2.86, 2.89 & 2.86 & 0.02 & [2.82, 2.90] \\
+    Convergence rate & 0.900, 0.867, 0.880, 0.884 & 0.883 & 0.014 & [0.861, 0.905] \\
+    Net adaptivity rate & 0.005, 0.010, 0.021, 0.016 & 0.013 & 0.007 & [0.002, 0.024] \\
+    \midrule
+    \multicolumn{5}{@{}l}{\emph{Condition~3 (state-conditioned)}} \\
+    Scaffolding & 3.45, 3.45, 3.55, 3.53 & 3.49 & 0.05 & [3.41, 3.58] \\
+    Correctness & 3.07, 2.99, 3.18, 3.18 & 3.10 & 0.09 & [2.96, 3.25] \\
+    Appropriateness & 2.85, 2.79, 2.91, 2.90 & 2.86 & 0.06 & [2.77, 2.95] \\
+    Convergence rate & 0.871, 0.900, 0.900, 0.880 & 0.888 & 0.015 & [0.864, 0.911] \\
+    Net adaptivity rate & 0.021, 0.016, 0.016, 0.037 & 0.022 & 0.010 & [0.006, 0.038] \\
+    \midrule
+    \multicolumn{5}{@{}l}{\emph{Condition~3 minus Condition~2 (paired within each run)}} \\
+    Scaffolding & -0.06, -0.06, +0.04, -0.02 & -0.02 & 0.05 & [-0.10, +0.05] \\
+    Correctness & -0.13, -0.07, +0.08, +0.06 & -0.02 & 0.10 & [-0.18, +0.15] \\
+    Appropriateness & -0.03, -0.03, +0.05, +0.02 & +0.00 & 0.04 & [-0.06, +0.06] \\
+    Convergence rate & -0.029, +0.033, +0.021, -0.004 & +0.005 & 0.028 & [-0.039, +0.049] \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
