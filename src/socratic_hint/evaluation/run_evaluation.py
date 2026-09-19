@@ -113,6 +113,10 @@ def evaluate_condition(
                 },
             )
         except Exception as exc:  # noqa: BLE001 - one bad example must not kill the run
+            if "usage limit" in str(exc).lower() or "credit balance" in str(exc).lower():
+                # Every later call would fail the same way and silently fill the results
+                # with error records, so stop the run loudly instead.
+                raise
             failed += 1
             _append_result(
                 results_path,
