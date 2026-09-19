@@ -81,8 +81,8 @@ w = 0.36
 for i, (lab, diff, noise) in enumerate(groups):
     b1 = ax.bar(i - w / 2, diff * 100, w, color="#4C72B0", label="Different injected state" if i == 0 else None)
     b2 = ax.bar(i + w / 2, noise * 100, w, color="#B0B0B0", label="Same injected state (repeat)" if i == 0 else None)
-    ax.text(i - w / 2, diff * 100 + 1.5, f"{diff*100:.0f}", ha="center", fontsize=7)
-    ax.text(i + w / 2, noise * 100 + 1.5, f"{noise*100:.0f}", ha="center", fontsize=7)
+    ax.text(i - w / 2, diff * 100 + 1.5, f"{diff*100:.1f}", ha="center", fontsize=6.5)
+    ax.text(i + w / 2, noise * 100 + 1.5, f"{noise*100:.1f}", ha="center", fontsize=6.5)
 ax.axvline(2.5, color="black", lw=0.6, ls=":")
 ax.set_xticks(range(len(groups))); ax.set_xticklabels([g_[0] for g_ in groups], fontsize=8)
 ax.set_ylim(0, 128); ax.set_yticks(range(0, 101, 20)); ax.set_ylabel("Dialogues whose two hints differ (%)")
@@ -90,4 +90,35 @@ ax.grid(axis="y", alpha=0.25); ax.set_axisbelow(True)
 ax.legend(fontsize=7.5, frameon=False, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.0))
 fig.tight_layout()
 fig.savefig(OUT / "adaptivity_story.pdf"); plt.close(fig)
-print("wrote", OUT / "five_conditions.pdf", "and", OUT / "adaptivity_story.pdf")
+
+# ---------------- Figure C: judge scores of the three main conditions (mean +/- 1 SD) ----------------
+def _scores(fname):
+    rows = []
+    for line in open(R / "full_run" / fname, encoding="utf-8"):
+        r = json.loads(line)
+        if r.get("record_type") != "adaptivity_batch" and r.get("judge_scores"):
+            rows.append(r["judge_scores"])
+    return rows
+
+
+main3 = [("Prompted baseline", "prompted_only.jsonl", "#4C72B0"),
+         ("Fine-tuned, state suppressed", "finetuned_without_state.jsonl", "#DD8452"),
+         ("Fine-tuned, state-conditioned", "finetuned_with_state.jsonl", "#55A868")]
+fig, ax = plt.subplots(figsize=(6.5, 4.0))
+w = 0.26
+for j, (label, fname, color) in enumerate(main3):
+    rows = _scores(fname)
+    means, sds = [], []
+    for k, _ in dims:
+        v = [r[k] for r in rows]
+        m = sum(v) / len(v)
+        means.append(m)
+        sds.append(math.sqrt(sum((x - m) ** 2 for x in v) / (len(v) - 1)))
+    ax.bar([i + (j - 1) * w for i in range(3)], means, w, yerr=sds, color=color, label=label, capsize=3, error_kw={"lw": 1.0})
+ax.set_xticks(range(3)); ax.set_xticklabels([n for _, n in dims])
+ax.set_ylim(0, 6.4); ax.set_yticks(range(6)); ax.set_ylabel("Mean judge score (1-5)")
+ax.grid(axis="y", alpha=0.25); ax.set_axisbelow(True)
+ax.legend(fontsize=8, frameon=False, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.0), columnspacing=1.2, handlelength=1.2)
+fig.tight_layout()
+fig.savefig(OUT / "judge_scores.pdf"); plt.close(fig)
+print("wrote", OUT / "five_conditions.pdf,", OUT / "adaptivity_story.pdf", "and", OUT / "judge_scores.pdf")
