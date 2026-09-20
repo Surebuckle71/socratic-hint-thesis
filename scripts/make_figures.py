@@ -121,4 +121,30 @@ ax.grid(axis="y", alpha=0.25); ax.set_axisbelow(True)
 ax.legend(fontsize=8, frameon=False, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.0), columnspacing=1.2, handlelength=1.2)
 fig.tight_layout()
 fig.savefig(OUT / "judge_scores.pdf"); plt.close(fig)
-print("wrote", OUT / "five_conditions.pdf,", OUT / "adaptivity_story.pdf", "and", OUT / "judge_scores.pdf")
+
+# ---------------- Figure D: raw differ rate versus noise floor (original content-varying design) ----------------
+def _adaptivity(fname):
+    for line in open(R / "full_run" / fname, encoding="utf-8"):
+        r = json.loads(line)
+        if r.get("record_type") == "adaptivity_batch":
+            return r
+    raise ValueError(fname)
+
+
+adapt = [("1. Claude,\nprompted", "prompted_only.jsonl"),
+         ("2. FT,\nno state", "finetuned_without_state.jsonl"),
+         ("3. FT +\nstate", "finetuned_with_state.jsonl")]
+fig, ax = plt.subplots(figsize=(6.0, 4.0))
+w = 0.36
+for i, (lab, fname) in enumerate(adapt):
+    a = _adaptivity(fname)
+    ax.bar(i - w / 2, a["differ_rate"], w, color="#4C72B0", label="Differ rate" if i == 0 else None)
+    ax.bar(i + w / 2, a["noise_rate"], w, color="#C44E52", label="Noise floor" if i == 0 else None)
+    ax.text(i, 1.03, f"net={a['net_rate']:.4f}", ha="center", fontsize=8)
+ax.set_xticks(range(3)); ax.set_xticklabels([a[0] for a in adapt])
+ax.set_ylim(0, 1.15); ax.set_ylabel("Rate")
+ax.grid(axis="y", alpha=0.25); ax.set_axisbelow(True)
+ax.legend(fontsize=8, loc="lower right", frameon=True)
+fig.tight_layout()
+fig.savefig(OUT / "adaptivity.pdf"); plt.close(fig)
+print("wrote", OUT / "five_conditions.pdf,", OUT / "adaptivity_story.pdf,", OUT / "judge_scores.pdf", "and", OUT / "adaptivity.pdf")
