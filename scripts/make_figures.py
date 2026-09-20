@@ -89,7 +89,7 @@ for i, (lab, real, placebo, noise) in enumerate(groups):
         ax.text(i, placebo * 100 + 1.5, f"{placebo*100:.1f}", ha="center", fontsize=6)
     ax.bar(i + w, noise * 100, w, color="#B0B0B0", label="Same injected state (repeat)" if i == 0 else None)
     ax.text(i + w, noise * 100 + 1.5, f"{noise*100:.1f}", ha="center", fontsize=6)
-ax.axvline(2.5, color="black", lw=0.6, ls=":")
+ax.axvline(2.5, ymax=0.80, color="black", lw=0.6, ls=":")
 ax.set_xticks(range(len(groups))); ax.set_xticklabels([g_[0] for g_ in groups], fontsize=8)
 ax.set_ylim(0, 128); ax.set_yticks(range(0, 101, 20)); ax.set_ylabel("Dialogues whose two hints differ (%)")
 ax.grid(axis="y", alpha=0.25); ax.set_axisbelow(True)
