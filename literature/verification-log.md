@@ -30,7 +30,7 @@ Independent verification pass over all 32 entries in `references.bib`, split acr
 | pandey2019selfattentive | PASS | https://arxiv.org/abs/1907.06837 | Title, both authors, year match. |
 | ghosh2020contextaware | PASS | KDD 2020 accepted-papers page | Title, 3 authors, year match. |
 | scarlatos2025exploring | PASS | https://arxiv.org/abs/2409.16490 | Title, 3 authors match. arXiv preprint Sept 2024; publication is LAK 2025, consistent with bib. |
-| jung2024clst | PASS | https://arxiv.org/abs/2406.10296 | Title, 4 authors, year match. |
+| jung2025clst | PASS | https://jedm.educationaldatamining.org/index.php/JEDM/article/view/854 | Title and 4 authors match; the journal version (JEDM 17(2), 86-117, 2025) replaces the arXiv preprint. |
 | cho2024systematic | PASS | https://arxiv.org/abs/2412.09248 | Title, 3 authors, year match. |
 | dmello2012autotutor | **FAIL → FIXED** | Semantic Scholar API + web search (ACM DL listing, author's self-hosted PDF) | Bib subtitle read "...Cognitively and Emotionally **Aware Cyber-Tutors**" — fabricated. Correct published subtitle: "...Cognitively and Emotionally **Intelligent Computers that Talk Back**." Authors, journal, volume/issue, year were all correct. **Title corrected in `references.bib` and `04-student-state-modeling.md` after this finding** — entry kept (real paper, verified fix) rather than dropped, since the underlying paper and all other fields are genuine. |
 | zheng2023judging | PASS | https://arxiv.org/abs/2306.05685 | Title, all 13 authors, year match. |
