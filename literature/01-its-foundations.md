@@ -7,7 +7,7 @@ confirmed from the fetched content, not from memory).
 
 1. **Citation:** VanLehn, K. (2011). The Relative Effectiveness of Human Tutoring, Intelligent Tutoring Systems, and Other Tutoring Systems. *Educational Psychologist*, 46(4), 197–221.
    **Link:** https://eric.ed.gov/?id=EJ946764
-   **Summary:** A landmark meta-analysis synthesizing decades of controlled studies comparing human tutoring, intelligent tutoring systems (ITS), and non-interactive computer-aided instruction. It finds that human tutors achieve a mean effect size of d ≈ 0.79 over no-tutoring control conditions, while step-based/substep-based ITS achieve d ≈ 0.76 — nearly matching human tutors. It also shows that interaction granularity (answer-based vs. step-based vs. substep-based) is a key driver of effectiveness.
+   **Summary:** A landmark meta-analysis synthesizing decades of controlled studies comparing human tutoring, intelligent tutoring systems (ITS), and non-interactive computer-aided instruction. It finds that human tutors achieve a mean effect size of d ≈ 0.79 over no-tutoring control conditions, while step-based ITS achieve d ≈ 0.76 — nearly matching human tutors — and substep-based ITS d ≈ 0.40 (answer-based ITS 0.31). It also shows that interaction granularity (answer-based vs. step-based vs. substep-based) is a key driver of effectiveness.
    **Relevance:** This is the canonical effectiveness benchmark for ITS research; any claim that an LLM-based Socratic hint generator narrows the gap toward human-tutor-level effectiveness should be framed against these effect-size baselines.
 
 2. **Citation:** Kulik, J. A., & Fletcher, J. D. (2016). Effectiveness of Intelligent Tutoring Systems: A Meta-Analytic Review. *Review of Educational Research*, 86(1), 42–78.
