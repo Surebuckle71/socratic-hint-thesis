@@ -68,26 +68,32 @@ s2 = json.load(open(R / "counterfactual" / "semantic_adaptivity_summary_claude-o
 g = json.load(open(R / "counterfactual" / "greedy_counterfactual_summary.json"))
 g1 = json.load(open(R / "counterfactual" / "semantic_greedy_summary.json"))
 g2 = json.load(open(R / "counterfactual" / "semantic_greedy_summary_claude-opus-5.json"))
+ps = json.load(open(R / "placebo" / "placebo_summary.json"))
+pss = json.load(open(R / "placebo" / "semantic_placebo_summary.json"))
+# (label, real pair 0.20 vs 0.80, placebo pair 0.48 vs 0.52 or None, same-state repeat)
 groups = [
-    ("Sampled\nexact text", cf["differ_rate"], cf["noise_rate"]),
-    ("Sampled\nsemantic\n(Sonnet 5)", s1["semantic_differ_rate"], s1["semantic_noise_rate"]),
-    ("Sampled\nsemantic\n(Opus 5)", s2["semantic_differ_rate"], s2["semantic_noise_rate"]),
-    ("Greedy\nexact text", g["differ_rate"], g["determinism_violations"] / g["n"]),
-    ("Greedy\nsemantic\n(Sonnet 5)", g1["semantic_differ_rate_greedy"], 0.0),
-    ("Greedy\nsemantic\n(Opus 5)", g2["semantic_differ_rate_greedy"], 0.0),
+    ("Sampled\nexact text", cf["differ_rate"], ps["sampled"]["differ_rate"], cf["noise_rate"]),
+    ("Sampled\nsemantic\n(Sonnet 5)", s1["semantic_differ_rate"], pss["sampled"]["semantic_differ_rate"], s1["semantic_noise_rate"]),
+    ("Sampled\nsemantic\n(Opus 5)", s2["semantic_differ_rate"], None, s2["semantic_noise_rate"]),
+    ("Greedy\nexact text", g["differ_rate"], ps["greedy"]["differ_rate"], g["determinism_violations"] / g["n"]),
+    ("Greedy\nsemantic\n(Sonnet 5)", g1["semantic_differ_rate_greedy"], pss["greedy_placebo"]["semantic_differ_rate"], 0.0),
+    ("Greedy\nsemantic\n(Opus 5)", g2["semantic_differ_rate_greedy"], None, 0.0),
 ]
-fig, ax = plt.subplots(figsize=(6.8, 3.5))
-w = 0.36
-for i, (lab, diff, noise) in enumerate(groups):
-    b1 = ax.bar(i - w / 2, diff * 100, w, color="#4C72B0", label="Different injected state" if i == 0 else None)
-    b2 = ax.bar(i + w / 2, noise * 100, w, color="#B0B0B0", label="Same injected state (repeat)" if i == 0 else None)
-    ax.text(i - w / 2, diff * 100 + 1.5, f"{diff*100:.1f}", ha="center", fontsize=6.5)
-    ax.text(i + w / 2, noise * 100 + 1.5, f"{noise*100:.1f}", ha="center", fontsize=6.5)
+fig, ax = plt.subplots(figsize=(7.2, 3.7))
+w = 0.26
+for i, (lab, real, placebo, noise) in enumerate(groups):
+    ax.bar(i - w, real * 100, w, color="#4C72B0", label="Different injected state (0.20 vs 0.80)" if i == 0 else None)
+    ax.text(i - w, real * 100 + 1.5, f"{real*100:.1f}", ha="center", fontsize=6)
+    if placebo is not None:
+        ax.bar(i, placebo * 100, w, color="#DD8452", label="Placebo pair (0.48 vs 0.52)" if i == 0 else None)
+        ax.text(i, placebo * 100 + 1.5, f"{placebo*100:.1f}", ha="center", fontsize=6)
+    ax.bar(i + w, noise * 100, w, color="#B0B0B0", label="Same injected state (repeat)" if i == 0 else None)
+    ax.text(i + w, noise * 100 + 1.5, f"{noise*100:.1f}", ha="center", fontsize=6)
 ax.axvline(2.5, color="black", lw=0.6, ls=":")
 ax.set_xticks(range(len(groups))); ax.set_xticklabels([g_[0] for g_ in groups], fontsize=8)
 ax.set_ylim(0, 128); ax.set_yticks(range(0, 101, 20)); ax.set_ylabel("Dialogues whose two hints differ (%)")
 ax.grid(axis="y", alpha=0.25); ax.set_axisbelow(True)
-ax.legend(fontsize=7.5, frameon=False, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.0))
+ax.legend(fontsize=7, frameon=False, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.0))
 fig.tight_layout()
 fig.savefig(OUT / "adaptivity_story.pdf"); plt.close(fig)
 
