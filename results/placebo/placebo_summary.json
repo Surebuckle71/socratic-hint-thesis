@@ -1,0 +1,15 @@
+{
+  "n": 191,
+  "placebo_states": [
+    0.48,
+    0.52
+  ],
+  "sampled": {
+    "differ_rate": 0.9947643979057592,
+    "noise_rate": 0.9738219895287958
+  },
+  "greedy": {
+    "differ_rate": 0.6178010471204188,
+    "determinism_violations": 0
+  }
+}
