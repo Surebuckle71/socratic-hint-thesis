@@ -216,10 +216,14 @@ need `scipy` (base Python).
 | `scripts/run_counterfactual_adaptivity.py` | Same-history counterfactual: only the injected state changes |
 | `scripts/run_greedy_counterfactual.py` | The same counterfactual under greedy decoding (no sampling noise) |
 | `scripts/semantic_adaptivity.py`, `scripts/semantic_greedy.py` | LLM-judge semantic difference for the counterfactual hints |
+| `scripts/run_placebo_counterfactual.py`, `scripts/semantic_placebo.py` | Placebo counterfactual (0.48 vs 0.52 injected state) with exact-text and semantic scoring; results in `results/placebo/` |
+| `scripts/seed_analysis.py`, `scripts/seed_latex.py` | Run-to-run mean, SD and 95% interval of the two fine-tuned conditions over the original run and three seeded repeats (`run_evaluation.py --seed`); results in `results/seeds/` |
+| `scripts/significance_analysis.py` | Paired Wilcoxon and McNemar tests on the main run |
 | `scripts/bootstrap_adaptivity.py` | Paired bootstrap CIs for the net-adaptivity difference |
 | `scripts/effect_sizes.py`, `scripts/error_taxonomy.py` | Effect sizes and keyword-based rationale taxonomy |
 | `scripts/measure_inference.py`, `scripts/measure_training_memory.py` | Peak VRAM, latency, and throughput |
-| `scripts/build_annotation_sheet.py`, `scripts/analyze_annotation.py`, `scripts/label_sensitivity.py` | Pilot validity check of the silver labels (see `annotation/`) |
+| `scripts/build_annotation_sheet.py`, `scripts/build_rating_tool.py`, `scripts/analyze_annotation.py`, `scripts/label_sensitivity.py` | Pilot validity check of the silver labels (see `annotation/`) |
+| `scripts/make_figures.py`, `scripts/make_design_figures.py`, `scripts/plot_training_loss.py` | Redraw the thesis figures from the saved results and `trainer_state.json` |
 
 Model weights are not included: the fine-tuned LoRA adapter is about 114 MB, above GitHub's 100 MB
 file limit. Re-create it with `scripts/run_training.py` (about 7 to 9 hours on an RTX 4050 Laptop
