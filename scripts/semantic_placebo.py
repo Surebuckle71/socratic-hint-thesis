@@ -1,7 +1,7 @@
 """
 Semantic scoring of the placebo counterfactual hints (results/placebo/).
 
-Not run for the thesis (API cost): the thesis reports the placebo pair on exact text only.
+Run for the thesis with Claude Sonnet 5 only (the placebo hints were not scored by Opus 5, to save API cost).
 
 Same judge prompt as scripts/semantic_adaptivity.py. For each of the 191 pairs it judges:
   sampled: (0.48 hint vs 0.52 hint) and (0.48 hint vs its resample)  -> placebo net rate

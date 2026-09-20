@@ -1,0 +1,32 @@
+{
+  "model": "claude-sonnet-5",
+  "placebo_states": [
+    0.48,
+    0.52
+  ],
+  "sampled": {
+    "n": 191,
+    "failed": 0,
+    "semantic_differ_rate": 0.7277486910994765,
+    "semantic_noise_rate": 0.6596858638743456,
+    "semantic_net_rate": 0.0680628272251309,
+    "mcnemar": {
+      "a": 102,
+      "b": 37,
+      "c": 24,
+      "d": 28,
+      "chi2": 2.360655737704918,
+      "p_value": 0.12442987548470683
+    }
+  },
+  "greedy": {
+    "n": 191,
+    "failed": 0,
+    "semantic_differ_rate_greedy": 0.39267015706806285
+  },
+  "tokens": {
+    "in": 127046,
+    "out": 4519,
+    "calls": 573
+  }
+}
