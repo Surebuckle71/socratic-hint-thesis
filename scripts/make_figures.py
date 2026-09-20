@@ -33,11 +33,11 @@ def wilson(k, n, z=1.96):
 
 # ---------------- Figure A: five conditions ----------------
 q = json.load(open(R / "qwen_analysis_summary.json", encoding="utf-8"))["descriptive"]
-order = [("qwen_p_nostate", "4. Qwen prompted,\nstate suppressed", "#8172B3"),
-         ("qwen_p_state", "5. Qwen prompted,\nstate-conditioned", "#B9AED6"),
-         ("ft_nostate", "2. Fine-tuned,\nstate suppressed", "#DD8452"),
-         ("ft_state", "3. Fine-tuned,\nstate-conditioned", "#55A868"),
-         ("claude", "1. Claude Sonnet 5\nprompted", "#4C72B0")]
+order = [("claude", "1. Claude, prompted", "#4C72B0"),
+         ("ft_nostate", "2. FT, no state", "#DD8452"),
+         ("ft_state", "3. FT + state", "#55A868"),
+         ("qwen_p_nostate", "4. Qwen, no state", "#8172B3"),
+         ("qwen_p_state", "5. Qwen + state", "#B9AED6")]
 dims = [("scaffolding_vs_telling", "Scaffolding"), ("correctness", "Correctness"), ("appropriateness", "Appropriateness")]
 
 fig, (ax, ax2) = plt.subplots(1, 2, figsize=(7.2, 3.6), gridspec_kw={"width_ratios": [3, 1.35]})
@@ -56,7 +56,7 @@ ax.set_ylim(0, 6.3); ax.set_yticks(range(6)); ax.set_ylabel("Mean judge score (1
 ax.grid(axis="y", alpha=0.25); ax.set_axisbelow(True)
 ax.legend(fontsize=6.5, loc="upper center", ncol=2, frameon=False, bbox_to_anchor=(0.5, 1.0))
 ax2.set_ylim(0.6, 1.0); ax2.set_ylabel("Convergence rate")
-ax2.set_xticks(range(5)); ax2.set_xticklabels(["4", "5", "2", "3", "1"])
+ax2.set_xticks(range(5)); ax2.set_xticklabels(["1", "2", "3", "4", "5"])
 ax2.set_xlabel("Condition"); ax2.grid(axis="y", alpha=0.25); ax2.set_axisbelow(True)
 fig.tight_layout()
 fig.savefig(OUT / "five_conditions.pdf"); plt.close(fig)
@@ -101,9 +101,9 @@ def _scores(fname):
     return rows
 
 
-main3 = [("Prompted baseline", "prompted_only.jsonl", "#4C72B0"),
-         ("Fine-tuned, state suppressed", "finetuned_without_state.jsonl", "#DD8452"),
-         ("Fine-tuned, state-conditioned", "finetuned_with_state.jsonl", "#55A868")]
+main3 = [("1. Claude, prompted", "prompted_only.jsonl", "#4C72B0"),
+         ("2. FT, no state", "finetuned_without_state.jsonl", "#DD8452"),
+         ("3. FT + state", "finetuned_with_state.jsonl", "#55A868")]
 fig, ax = plt.subplots(figsize=(6.5, 4.0))
 w = 0.26
 for j, (label, fname, color) in enumerate(main3):
