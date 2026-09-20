@@ -201,9 +201,9 @@ are silver labels derived from teacher move tags, so this remains a directional 
 no longer dominated by a length artefact. The same-history counterfactual scripts listed below
 remove the content difference by injecting the state directly.
 
-## Revision experiments (September 2026)
+## Additional experiments
 
-Additional experiments run after supervisor review. Each script reads or writes under `results/`,
+Experiments beyond the main evaluation. Each script reads or writes under `results/`,
 and none of them retrains the model. GPU scripts use the `.venv313` environment; analysis scripts
 need `scipy` (base Python).
 
