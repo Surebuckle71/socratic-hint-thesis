@@ -18,6 +18,55 @@ student convergence, and a state-adaptivity diagnostic.
 The data comes from MathDial (Macina et al., 2023), loaded from `eth-nlped/mathdial` on Hugging
 Face. It has its own license, so check its page before reusing it.
 
+## Results
+
+The numbers below are the ones reported in the thesis. All of them can be read or recomputed from
+the files under `results/`, except the two marked as coming from the thesis.
+The evaluation covers the 241 held-out MathDial dialogues left after the problem-level leakage
+filter (see [Evaluation](#evaluation)). Judge scores are on a 1-5 scale, and convergence is the
+share of simulated-student dialogues that converge within the five-turn cap. Conditions 2 and 3
+share one set of fine-tuned weights and differ only in whether the state estimate is used.
+Conditions 4 and 5 run the base Qwen2.5-3B-Instruct model without fine-tuning, as a control for
+what fine-tuning adds.
+
+| Condition | Scaffolding | Correctness | Appropriateness | Convergence | Scored |
+| --- | --- | --- | --- | --- | --- |
+| 1. Claude Sonnet 5, prompted | 3.96 | 4.72 | 4.64 | 0.93 | 241 |
+| 2. Fine-tuned, state suppressed | 3.51 | 3.20 | 2.86 | 0.90 | 241 |
+| 3. Fine-tuned, state-conditioned | 3.45 | 3.07 | 2.85 | 0.87 | 240 |
+| 4. Base Qwen, prompted, no state | 3.06 | 2.76 | 2.58 | 0.87 | 241 |
+| 5. Base Qwen, prompted, with state | 2.74 | 2.50 | 2.38 | 0.84 | 213 |
+
+Sources: `results/full_run/`, `results/qwen_analysis_summary.json`. Condition 5 failed on 28
+dialogues, 26 of them because its output could not be parsed.
+
+- **State-conditioning did not improve judged hint quality.** Condition 3 scores slightly below
+  condition 2 on every measure, but none of the gaps is significant (paired Wilcoxon p = 0.19 to
+  0.76, McNemar p = 0.32 on convergence, n = 240). Across the original run and three repeat runs
+  with different sampling seeds, the sign of the gap changes on every measure, and every 95%
+  interval for the four-run mean includes zero (`results/seeds/seed_analysis.txt`). The small
+  deficit in the first run is run-to-run variation, not a stable effect.
+- **Fine-tuning improved judged quality over the same base model.** Condition 2 scores higher
+  than condition 4 by 0.45, 0.44 and 0.28 points (scaffolding, correctness, appropriateness), and
+  condition 3 higher than condition 5 by 0.70, 0.59 and 0.48 (paired Wilcoxon, all p < 0.01). The
+  3.3-point gain in convergence is not significant in either format.
+- **The prompted Claude Sonnet 5 baseline still leads** both fine-tuned conditions on all four
+  measures.
+- **Most of the response to the state comes from the wording of the state line.** In the
+  same-history counterfactual, one history per dialogue is held fixed and only the injected state
+  changes (0.20 vs 0.80). Under greedy decoding this changes the hint in 74.9% of dialogues on
+  exact text and 49.2% semantically. A placebo pair of almost the same meaning (0.48 vs 0.52)
+  already changes 61.8% and 38.7%, so the excess of the real pair is 13.1 points on exact text
+  (p = 0.0015) and 10.5 points semantically (p = 0.025), McNemar with continuity correction. Under
+  sampled decoding, the semantic net rate is 8.4 points for the real pair and 5.2 for the placebo,
+  and the thesis's paired bootstrap interval for that 3.1-point difference includes zero, so no
+  excess over the placebo can be detected. Sources: `results/counterfactual/`, `results/placebo/`.
+
+These results are directional, not confirmatory. The state labels are silver labels derived from
+the tutor's move type, and a 60-item pilot check with one human rater (the author) gives only weak
+support for their ordering (Spearman 0.46 in the thesis; ratings in `annotation/`). Fine-tuning ran on a 6 GB laptop
+GPU (RTX 4050).
+
 ## Repository layout
 
 | Path | Contents |
